@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+.booked-date{
+  background:red;
+  color:white;
+}

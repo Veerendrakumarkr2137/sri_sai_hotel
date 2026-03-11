@@ -30,7 +30,19 @@ export default function MyBookings(){
 
       {bookings.map(b=>(
         <div key={b._id} style={{marginBottom:"20px"}}>
-
+          <span
+style={{
+padding:"4px 10px",
+background:
+booking.status === "confirmed" ? "green" :
+booking.status === "cancelled" ? "red" :
+"orange",
+color:"white",
+borderRadius:"6px"
+}}
+>
+{booking.status}
+</span>
           <p>Booking ID: {b.bookingRef}</p>
           <p>Room: {b.roomType}</p>
           <p>Check-in: {b.checkIn}</p>
