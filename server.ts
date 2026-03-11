@@ -52,7 +52,7 @@ const bookingSchema = new mongoose.Schema({
     default: Date.now
   }
 });
-const User = mongoose.model("User", userSchema);
+
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
 
@@ -72,6 +72,8 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+const User = mongoose.model("User", userSchema);
 
 const Booking = mongoose.model('Booking', bookingSchema);
 setInterval(async () => {

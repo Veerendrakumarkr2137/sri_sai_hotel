@@ -10,6 +10,9 @@ import Reviews from "./pages/Reviews";
 import Contact from "./pages/Contact";
 import BookingPage from "./pages/BookingPage";
 import BookingSearch from "./pages/BookingSearch";
+import Register from "./pages/Register";
+import MyBookings from "./pages/MyBookings";
+import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -30,6 +33,9 @@ export default function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/book/:id" element={<BookingPage />} />
             <Route path="/booking-search" element={<BookingSearch />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/my-bookings" element={<MyBookings />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/login" element={<Login />} />
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
