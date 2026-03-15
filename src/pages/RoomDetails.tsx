@@ -1,134 +1,107 @@
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ROOMS } from "../data";
-import { motion } from "motion/react";
-import { CheckCircle, Users, Maximize, BedDouble } from "lucide-react";
+import axios from "axios";
+import { Check, Users, Coffee, Wifi, Car, Waves, Tv, Shield } from "lucide-react";
 
 export default function RoomDetails() {
   const { id } = useParams();
-  const room = ROOMS.find(r => r.id === id);
+  const [room, setRoom] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRoom = async () => {
+      try {
+        const { data } = await axios.get(`http://localhost:3000/api/rooms/${id}`);
+        if (data.success) {
+          setRoom(data.room);
+        }
+      } catch (err) {
+        console.error("Failed to fetch room details:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRoom();
+  }, [id]);
+
+  if (loading) {
+    return <div className="text-center py-20 text-xl font-medium">Loading details...</div>;
+  }
 
   if (!room) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center">
-        <h2 className="text-3xl font-serif font-bold text-[#0B1B3D] mb-4">Room Not Found</h2>
-        <Link to="/rooms" className="text-[#D4AF37] hover:underline">Return to Rooms</Link>
-      </div>
-    );
+    return <div className="text-center py-20 text-xl text-red-500">Room not found</div>;
   }
 
   return (
-    <div className="w-full bg-white">
-      {/* Hero Image */}
-      <div className="h-[50vh] md:h-[60vh] relative">
-        <img 
-          src={room.images[0]} 
-          alt={room.name} 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/30"></div>
-        <div className="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black/80 to-transparent">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-2">{room.name}</h1>
-            <p className="text-xl text-gray-200">₹{room.price} / night</p>
+    <div className="container mx-auto px-4 py-16 max-w-7xl">
+      <div className="grid lg:grid-cols-2 gap-12 bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-slate-100">
+        
+        {/* Left Col: Imagery */}
+        <div className="flex flex-col gap-4">
+          <div className="rounded-2xl overflow-hidden aspect-[4/3] bg-slate-100">
+            <img
+              src={room.images?.[0] || "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&q=80"}
+              alt={room.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            {room.images?.slice(1, 4).map((img: string, i: number) => (
+              <div key={i} className="aspect-square rounded-xl overflow-hidden bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity border border-slate-200">
+                <img src={img} alt={`View ${i+2}`} className="w-full h-full object-cover" />
+              </div>
+            ))}
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="flex flex-col lg:flex-row gap-12">
-          {/* Main Content */}
-          <div className="lg:w-2/3">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <h3 className="text-2xl font-serif font-bold text-[#0B1B3D] mb-6">Room Overview</h3>
-              <p className="text-gray-600 leading-relaxed mb-8 text-lg">
-                {room.description}
-              </p>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-12 p-6 bg-slate-50 rounded-xl border border-gray-100">
-                <div className="flex flex-col items-center text-center">
-                  <Users className="w-8 h-8 text-[#D4AF37] mb-2" />
-                  <span className="text-sm text-gray-500">Capacity</span>
-                  <span className="font-semibold text-[#0B1B3D]">Up to {room.capacity} Guests</span>
-                </div>
-                <div className="flex flex-col items-center text-center">
-                  <Maximize className="w-8 h-8 text-[#D4AF37] mb-2" />
-                  <span className="text-sm text-gray-500">Size</span>
-                  <span className="font-semibold text-[#0B1B3D]">{room.size}</span>
-                </div>
-                <div className="flex flex-col items-center text-center">
-                  <BedDouble className="w-8 h-8 text-[#D4AF37] mb-2" />
-                  <span className="text-sm text-gray-500">Bed Type</span>
-                  <span className="font-semibold text-[#0B1B3D]">{room.bedType}</span>
-                </div>
-              </div>
-
-              <h3 className="text-2xl font-serif font-bold text-[#0B1B3D] mb-6">Amenities</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
-                {room.amenities.map((amenity, i) => (
-                  <div key={i} className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 mr-3 text-[#D4AF37]" />
-                    {amenity}
-                  </div>
-                ))}
-              </div>
-
-              <h3 className="text-2xl font-serif font-bold text-[#0B1B3D] mb-6">Room Gallery</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {room.images.map((img, i) => (
-                  <img 
-                    key={i} 
-                    src={img} 
-                    alt={`${room.name} ${i + 1}`} 
-                    className="w-full h-64 object-cover rounded-lg shadow-md hover:opacity-90 transition-opacity cursor-pointer"
-                  />
-                ))}
-              </div>
-            </motion.div>
+        {/* Right Col: Info */}
+        <div className="flex flex-col justify-center">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="bg-blue-50 text-blue-600 font-semibold px-3 py-1 rounded-full text-sm uppercase tracking-wider">
+              {room.roomType}
+            </span>
+            <span className="flex items-center gap-1 text-slate-500 bg-slate-100 px-3 py-1 text-sm rounded-full">
+              <Users className="w-4 h-4" /> {room.capacity} Guests Max
+            </span>
           </div>
 
-          {/* Sidebar */}
-          <div className="lg:w-1/3">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-white p-8 rounded-xl shadow-xl border border-gray-100 sticky top-28"
-            >
-              <h3 className="text-2xl font-serif font-bold text-[#0B1B3D] mb-2">Reserve this room</h3>
-              <div className="text-3xl font-bold text-[#D4AF37] mb-6">
-                ₹{room.price} <span className="text-sm text-gray-500 font-normal">/ night</span>
-              </div>
-              
-              <div className="space-y-4 mb-8">
-                <div className="flex justify-between text-gray-600 border-b pb-2">
-                  <span>Taxes & Fees</span>
-                  <span>Included</span>
-                </div>
-                <div className="flex justify-between text-gray-600 border-b pb-2">
-                  <span>Breakfast</span>
-                  <span>Included</span>
-                </div>
-                <div className="flex justify-between text-gray-600 border-b pb-2">
-                  <span>Cancellation</span>
-                  <span className="text-green-600">Free before 48h</span>
-                </div>
-              </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 leading-tight">
+            {room.title}
+          </h1>
+          
+          <div className="text-3xl font-bold text-slate-900 mb-8 border-b border-slate-100 pb-8">
+            ₹{room.price.toLocaleString("en-IN")}
+            <span className="text-lg font-normal text-slate-500 ml-2">/ night</span>
+          </div>
 
-              <Link 
-                to={`/book/${room.id}`}
-                className="block w-full text-center bg-[#0B1B3D] text-white py-4 rounded-md font-medium hover:bg-opacity-90 transition-colors text-lg"
-              >
-                Book Now
-              </Link>
-              
-              <p className="text-center text-sm text-gray-500 mt-4">
-                You won't be charged yet
-              </p>
-            </motion.div>
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4 text-slate-800">Room Overview</h3>
+            <p className="text-slate-600 leading-relaxed text-lg">
+              {room.description}
+            </p>
+          </div>
+
+          <div className="mb-10">
+            <h3 className="text-xl font-semibold mb-4 text-slate-800">Premium Amenities</h3>
+            <div className="grid grid-cols-2 shadow-sm rounded-2xl bg-slate-50 border border-slate-100 p-6 gap-y-4 gap-x-6">
+              {room.amenities?.map((amenity: string, idx: number) => (
+                <div key={idx} className="flex items-center gap-3 text-slate-700 font-medium">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-green-500 shadow-sm border border-slate-100">
+                    <Check className="w-4 h-4" />
+                  </div>
+                  {amenity}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-auto">
+            <Link
+              to={`/book/${room._id}`}
+              className="w-full flex items-center justify-center text-center bg-slate-900 text-white font-semibold py-4 rounded-xl text-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20 active:scale-[0.98]"
+            >
+              Reserve this Room
+            </Link>
           </div>
         </div>
       </div>

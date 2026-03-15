@@ -1,378 +1,245 @@
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { motion } from "motion/react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ROOMS } from "../data";
-import {
-  clearUserSession,
-  createAuthHeaders,
-  getStoredUser,
-  getUserToken,
-  updateStoredUser,
-  type SessionUser,
-} from "../lib/auth";
+import React, { useState, useEffect, useContext } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { AuthContext } from "../context/AuthContext";
+import { toast } from "react-toastify";
 
-type BookingFormData = {
-  name: string;
-  email: string;
-  phone: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
-};
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function BookingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const room = ROOMS.find((roomItem) => roomItem.id === id);
-  const [user, setUser] = useState<SessionUser | null>(() => getStoredUser());
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [availableRooms, setAvailableRooms] = useState<number | null>(null);
-  const [availabilityError, setAvailabilityError] = useState("");
-  const today = new Date().toISOString().split("T")[0];
+  const { user, token } = useContext(AuthContext);
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    reset,
-    getValues,
-    formState: { errors },
-  } = useForm<BookingFormData>({
-    defaultValues: {
-      name: user?.name || "",
-      email: user?.email || "",
-      phone: "",
-      guests: 1,
-      checkIn: "",
-      checkOut: "",
-    },
+  const [room, setRoom] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: "",
+    checkInDate: "",
+    checkOutDate: "",
+    guests: 1,
   });
 
-  const checkInDate = watch("checkIn");
-  const checkOutDate = watch("checkOut");
-
   useEffect(() => {
-    const token = getUserToken();
-
     if (!token) {
-      navigate("/login", { replace: true });
+      toast.error("Please login to book a room");
+      navigate("/login");
       return;
     }
 
-    let isCancelled = false;
-
-    const loadUser = async () => {
+    const fetchRoom = async () => {
       try {
-        const response = await fetch("/api/me", {
-          headers: createAuthHeaders(token),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          clearUserSession();
-          navigate("/login", { replace: true });
-          return;
+        const { data } = await axios.get(`http://localhost:3000/api/rooms/${id}`);
+        if (data.success) {
+          setRoom(data.room);
         }
-
-        if (!isCancelled) {
-          const nextUser = data.user as SessionUser;
-          updateStoredUser(nextUser);
-          setUser(nextUser);
-
-          const currentValues = getValues();
-          reset({
-            ...currentValues,
-            name: nextUser.name,
-            email: nextUser.email,
-          });
-        }
-      } catch (requestError) {
-        if (!isCancelled) {
-          clearUserSession();
-          navigate("/login", { replace: true });
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoadingUser(false);
-        }
+      } catch (err) {
+        console.error("Failed to fetch room:", err);
       }
     };
+    fetchRoom();
+  }, [id, token, navigate, user]);
 
-    loadUser();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [getValues, navigate, reset]);
-
-  useEffect(() => {
-    if (!room) {
-      return;
-    }
-
-    setAvailabilityError("");
-
-    const searchParams = new URLSearchParams();
-
-    if (checkInDate && checkOutDate) {
-      searchParams.set("checkIn", checkInDate);
-      searchParams.set("checkOut", checkOutDate);
-    }
-
-    const availabilityUrl =
-      `/api/availability/${encodeURIComponent(room.name)}` +
-      `${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
-
-    fetch(availabilityUrl)
-      .then(async (response) => {
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || "Availability is unavailable right now.");
-        }
-
-        setAvailableRooms(data.available as number);
-      })
-      .catch((error) => {
-        console.error("Availability error:", error);
-        setAvailabilityError("Availability is unavailable right now.");
-      });
-  }, [checkInDate, checkOutDate, room]);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const calculateTotal = () => {
-    if (!checkInDate || !checkOutDate || !room) {
-      return room?.price || 0;
-    }
-
-    const start = new Date(checkInDate);
-    const end = new Date(checkOutDate);
-    const diffTime = end.getTime() - start.getTime();
-
-    if (diffTime <= 0) {
-      return room.price;
-    }
-
+    if (!room || !formData.checkInDate || !formData.checkOutDate) return 0;
+    const start = new Date(formData.checkInDate);
+    const end = new Date(formData.checkOutDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays * room.price;
+    return diffDays > 0 ? diffDays * room.price : room.price;
   };
 
-  const onSubmit = async (data: BookingFormData) => {
-    if (!room) {
+  const handlePayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email || !formData.phone || !formData.checkInDate || !formData.checkOutDate) {
+      toast.error("Please fill all details");
       return;
     }
-
-    const token = getUserToken();
-
-    if (!token) {
-      clearUserSession();
-      navigate("/login", { replace: true });
-      return;
-    }
-
-    setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...createAuthHeaders(token),
+      const totalAmount = calculateTotal();
+
+      // 1. Create order
+      const orderRes = await axios.post(
+        "http://localhost:3000/api/bookings/create-order",
+        { amount: totalAmount },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const options = {
+        key: "test_key", // Use actual key in production
+        amount: orderRes.data.order.amount,
+        currency: "INR",
+        name: "Hotel Sai International",
+        description: `Booking for ${room.title}`,
+        order_id: orderRes.data.order.id,
+        handler: async function (response: any) {
+          // 2. Verify payment & create booking
+          try {
+            const verifyRes = await axios.post(
+              "http://localhost:3000/api/bookings/verify-payment",
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                bookingData: {
+                  roomId: room._id,
+                  ...formData,
+                  totalPrice: totalAmount,
+                },
+              },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (verifyRes.data.success) {
+              toast.success("Booking confirmed successfully!");
+              navigate("/my-bookings");
+            }
+          } catch (err) {
+            toast.error("Payment verification failed");
+          }
         },
-        body: JSON.stringify({
-          roomType: room.name,
-          phone: data.phone,
-          checkIn: data.checkIn,
-          checkOut: data.checkOut,
-          guests: data.guests,
-        }),
-      });
+        prefill: {
+          name: formData.name,
+          email: formData.email,
+          contact: formData.phone,
+        },
+      };
 
-      const result = await response.json();
-
-      if (response.status === 401 || response.status === 403) {
-        clearUserSession();
-        navigate("/login", { replace: true });
-        return;
-      }
-
-      if (response.ok && result.success) {
-        setSuccess(true);
-        setTimeout(() => {
-          navigate("/");
-        }, 3000);
-      } else {
-        alert(result.error || "Failed to create booking");
-      }
-    } catch (error) {
-      console.error("Booking error:", error);
-      alert("Server connection error");
-    } finally {
-      setIsSubmitting(false);
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      toast.error("Failed to initiate payment");
+      console.error(err);
     }
   };
 
-  if (!room) {
-    return <div className="p-20 text-center">Room not found</div>;
-  }
-
-  if (isLoadingUser) {
-    return <div className="p-20 text-center">Loading your account...</div>;
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center bg-slate-50">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="w-full max-w-md rounded-2xl bg-white p-10 text-center shadow-xl"
-        >
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-500">
-            <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </div>
-          <h2 className="mb-4 text-3xl font-serif font-bold text-[#0B1B3D]">
-            Booking Confirmed!
-          </h2>
-          <p className="mb-6 text-gray-600">
-            Thank you for choosing Hotel Sai International.
-            We have sent a confirmation email with your booking details.
-          </p>
-          <p className="text-sm text-gray-500">
-            Redirecting to home...
-          </p>
-        </motion.div>
-      </div>
-    );
-  }
+  if (!room) return <div className="text-center py-20 text-xl">Loading booking details...</div>;
 
   return (
-    <div className="w-full bg-slate-50 py-12">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-serif font-bold text-[#0B1B3D] md:text-4xl">
-            Complete Your Booking
-          </h1>
-          <p className="text-gray-600">
-            You are booking the
-            <span className="font-semibold text-[#D4AF37]">
-              {" "} {room.name}
-            </span>
-          </p>
+    <div className="container mx-auto px-4 py-12 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-8 text-center text-slate-900">Complete Your Booking</h1>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-full text-slate-800">
+          <h2 className="text-2xl font-bold mb-6 border-b border-slate-100 pb-4">Room Summary</h2>
+          <img
+            src={room.images?.[0] || "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&q=80"}
+            alt={room.title}
+            className="w-full h-48 object-cover rounded-xl mb-6 shadow-sm"
+          />
+          <h3 className="text-xl font-semibold mb-2">{room.title}</h3>
+          <p className="text-slate-500 mb-6 text-sm">{room.description}</p>
+          
+          <div className="mt-auto border-t border-slate-100 pt-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-slate-500 font-medium">Price per night</span>
+              <span className="font-semibold">₹{room.price.toLocaleString("en-IN")}</span>
+            </div>
+            <div className="flex justify-between items-center text-xl font-bold text-slate-900">
+              <span>Total Estimated</span>
+              <span className="text-emerald-600">₹{calculateTotal().toLocaleString("en-IN")}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-8 md:flex-row">
-          <div className="md:w-2/3">
-            <div className="rounded-xl border border-gray-100 bg-white p-8 shadow-md">
-              <h3 className="mb-6 border-b pb-4 text-xl font-semibold">
-                Guest Information
-              </h3>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+
+        <form onSubmit={handlePayment} className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
+          <h2 className="text-xl font-bold mb-6 text-slate-800">Guest Details</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block mb-1 text-sm font-medium text-slate-700">Full Name</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="w-full border border-slate-200 p-3 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block mb-1 text-sm font-medium text-slate-700">Email Address</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="w-full border border-slate-200 p-3 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all cursor-not-allowed bg-slate-50"
+                readOnly
+              />
+            </div>
+            <div>
+              <label className="block mb-1 text-sm font-medium text-slate-700">Phone Number</label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                required
+                className="w-full border border-slate-200 p-3 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1 text-sm font-medium text-slate-700">Check-in</label>
                 <input
-                  {...register("name", { required: "Name is required" })}
-                  readOnly
-                  className="w-full rounded-md border bg-slate-50 p-3 text-slate-700"
+                  type="date"
+                  name="checkInDate"
+                  value={formData.checkInDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={handleChange}
+                  required
+                  className="w-full border border-slate-200 p-3 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
                 />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm font-medium text-slate-700">Check-out</label>
                 <input
-                  type="email"
-                  {...register("email", { required: "Email is required" })}
-                  readOnly
-                  className="w-full rounded-md border bg-slate-50 p-3 text-slate-700"
+                  type="date"
+                  name="checkOutDate"
+                  value={formData.checkOutDate}
+                  min={formData.checkInDate || new Date().toISOString().split('T')[0]}
+                  onChange={handleChange}
+                  required
+                  className="w-full border border-slate-200 p-3 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
                 />
-                <div>
-                  <input
-                    {...register("phone", { required: "Phone is required" })}
-                    placeholder="Phone"
-                    className="w-full rounded-md border p-3"
-                  />
-                  {errors.phone && (
-                    <p className="mt-2 text-sm text-red-600">{errors.phone.message}</p>
-                  )}
-                </div>
-                <div>
-                  <input
-                    type="date"
-                    min={today}
-                    {...register("checkIn", { required: "Check-in date is required" })}
-                    className="w-full rounded-md border p-3"
-                  />
-                  {errors.checkIn && (
-                    <p className="mt-2 text-sm text-red-600">{errors.checkIn.message}</p>
-                  )}
-                </div>
-                <div>
-                  <input
-                    type="date"
-                    min={checkInDate || today}
-                    {...register("checkOut", {
-                      required: "Check-out date is required",
-                      validate: (value) =>
-                        !checkInDate || new Date(value) > new Date(checkInDate) || "Check-out must be after check-in",
-                    })}
-                    className="w-full rounded-md border p-3"
-                  />
-                  {errors.checkOut && (
-                    <p className="mt-2 text-sm text-red-600">{errors.checkOut.message}</p>
-                  )}
-                </div>
-                <select
-                  {...register("guests", { required: true, valueAsNumber: true })}
-                  className="w-full rounded-md border p-3"
-                >
-                  {Array.from({ length: room.capacity }, (_, index) => index + 1).map((guestCount) => (
-                    <option key={guestCount} value={guestCount}>
-                      {guestCount} Guest
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || availableRooms === 0}
-                  className="w-full rounded-md bg-[#0B1B3D] py-4 font-medium text-white disabled:opacity-70"
-                >
-                  {isSubmitting ? "Processing..." : "Confirm Booking"}
-                </button>
-              </form>
+              </div>
+            </div>
+            <div>
+              <label className="block mb-1 text-sm font-medium text-slate-700">Guests</label>
+              <select
+                name="guests"
+                value={formData.guests}
+                onChange={handleChange}
+                className="w-full border border-slate-200 p-3 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
+              >
+                {[...Array(room.capacity)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1} {i === 0 ? "Guest" : "Guests"}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          <div className="md:w-1/3">
-            <div className="sticky top-28 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-md">
-              <img
-                src={room.images[0]}
-                alt={room.name}
-                className="h-48 w-full object-cover"
-              />
-              <div className="p-6">
-                <h4 className="mb-4 text-xl font-serif font-bold text-[#0B1B3D]">
-                  {room.name}
-                </h4>
-                {availableRooms !== null && (
-                  <p className="mb-2 font-semibold text-green-600">
-                    {availableRooms} Rooms Available
-                  </p>
-                )}
-                {availabilityError && (
-                  <p className="mb-2 text-sm text-amber-700">{availabilityError}</p>
-                )}
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Price per night</span>
-                  <span>{`Rs. ${room.price.toLocaleString("en-IN")}`}</span>
-                </div>
-                {checkInDate && checkOutDate && (
-                  <div className="mt-2 flex justify-between font-medium text-[#D4AF37]">
-                    <span>Total Stay</span>
-                    <span>{`Rs. ${calculateTotal().toLocaleString("en-IN")}`}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+          <button
+            type="submit"
+            className="w-full bg-slate-900 text-white font-semibold p-4 rounded-xl mt-8 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:scale-[0.98]"
+          >
+            Pay &&nbsp;Confirm Booking
+          </button>
+        </form>
       </div>
     </div>
   );

@@ -1,100 +1,76 @@
-import { useState, type FormEvent } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "motion/react";
-import { Lock } from "lucide-react";
-import { setAdminSession } from "../lib/auth";
+import axios from "axios";
+import { AuthContext } from "../context/AuthContext";
+import { toast } from "react-toastify";
+import { ShieldAlert } from "lucide-react";
 
 export default function AdminLogin() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({ username: "", password: "" });
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsLoading(true);
-    setError("");
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
     try {
-      const response = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setAdminSession(data.token);
-        navigate("/admin/dashboard", { replace: true });
-      } else {
-        setError(data.error || "Invalid credentials");
+      const { data } = await axios.post("http://localhost:3000/api/auth/admin/login", formData);
+      if (data.success) {
+        login(data.token, { id: "admin", name: "Admin", email: "admin@hotelsai.com", role: "admin" });
+        toast.success("Admin login successful");
+        navigate("/admin/dashboard");
       }
-    } catch (requestError) {
-      setError("An error occurred during login");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Login failed");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-slate-50 px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full overflow-hidden rounded-2xl bg-white shadow-xl"
-      >
-        <div className="bg-[#0B1B3D] p-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
-            <Lock className="text-[#D4AF37]" size={32} />
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-2xl">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+            <ShieldAlert size={32} />
           </div>
-          <h2 className="text-2xl font-serif font-bold text-white">Admin Portal</h2>
-          <p className="mt-2 text-sm text-gray-300">Sign in to manage bookings</p>
+          <h2 className="text-3xl font-bold text-slate-900">Admin Portal</h2>
+          <p className="text-slate-500 mt-2 text-center text-sm">
+            Access restricted to authorized personnel only.
+          </p>
         </div>
 
-        <div className="p-8">
-          {error && (
-            <div className="mb-6 rounded-md border border-red-100 bg-red-50 p-4 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                required
-                className="w-full rounded-md border border-gray-300 p-3 focus:border-[#0B1B3D] focus:ring-[#0B1B3D]"
-                placeholder="Enter admin username"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                className="w-full rounded-md border border-gray-300 p-3 focus:border-[#0B1B3D] focus:ring-[#0B1B3D]"
-                placeholder="Enter password"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full rounded-md bg-[#0B1B3D] py-3 font-medium text-white transition-colors disabled:opacity-70"
-            >
-              {isLoading ? "Signing in..." : "Sign In"}
-            </button>
-          </form>
-        </div>
-      </motion.div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+            <input
+              type="text"
+              required
+              className="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <input
+              type="password"
+              required
+              className="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-slate-900 text-white font-semibold py-4 rounded-xl hover:bg-slate-800 transition-all text-lg shadow-lg"
+          >
+            {loading ? "Authenticating..." : "Login to Dashboard"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

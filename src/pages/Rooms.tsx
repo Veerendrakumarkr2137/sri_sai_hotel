@@ -1,91 +1,103 @@
-import { motion } from "motion/react";
-import { ROOMS } from "../data";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Link } from "react-router-dom";
-import { CheckCircle, Users, Maximize } from "lucide-react";
+import { Wifi, Coffee, Users, Tv } from "lucide-react";
 
 export default function Rooms() {
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const { data } = await axios.get("http://localhost:3000/api/rooms");
+        if (data.success) {
+          setRooms(data.rooms);
+        }
+      } catch (err) {
+        console.error("Failed to fetch rooms:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRooms();
+  }, []);
+
+  if (loading) {
+    return <div className="text-center py-20 text-xl font-medium">Loading amazing rooms...</div>;
+  }
+
   return (
-    <div className="w-full bg-slate-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-[#0B1B3D] mb-4">Our Rooms & Suites</h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Experience unparalleled comfort and luxury in our thoughtfully designed rooms. Each space is crafted to provide a relaxing sanctuary during your stay in Davanagere.
-          </p>
-        </div>
+    <div className="container mx-auto px-4 py-16 max-w-7xl">
+      <div className="text-center mb-16">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-slate-900 tracking-tight">
+          Our Luxury Rooms
+        </h1>
+        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          Discover comfort and elegance in our carefully designed rooms. Each space offers a unique blend of modern amenities and timeless charm.
+        </p>
+      </div>
 
-        <div className="space-y-12">
-          {ROOMS.map((room, index) => (
-            <motion.div 
-              key={room.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-white rounded-2xl overflow-hidden shadow-lg flex flex-col lg:flex-row border border-gray-100"
-            >
-              <div className="lg:w-2/5 h-64 lg:h-auto relative">
-                <img 
-                  src={room.images[0]} 
-                  alt={room.name} 
-                  className="w-full h-full object-cover"
-                />
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {rooms.map((room) => (
+          <div key={room._id} className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all flex flex-col group">
+            <div className="relative h-64 overflow-hidden">
+              <img
+                src={room.images?.[0] || "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&q=80"}
+                alt={room.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-sm font-semibold shadow-sm text-slate-800">
+                ₹{room.price.toLocaleString("en-IN")} / night
               </div>
-              <div className="lg:w-3/5 p-8 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-start mb-4">
-                    <h2 className="text-3xl font-serif font-bold text-[#0B1B3D]">{room.name}</h2>
-                    <div className="text-right">
-                      <span className="text-2xl font-bold text-[#D4AF37]">₹{room.price}</span>
-                      <span className="text-gray-500 text-sm block">per night</span>
-                    </div>
-                  </div>
-                  <p className="text-gray-600 mb-6 leading-relaxed">
-                    {room.description}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-6 mb-6">
-                    <div className="flex items-center text-gray-600">
-                      <Users className="w-5 h-5 mr-2 text-[#D4AF37]" />
-                      <span>Up to {room.capacity} Guests</span>
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                      <Maximize className="w-5 h-5 mr-2 text-[#D4AF37]" />
-                      <span>{room.size}</span>
-                    </div>
-                  </div>
-
-                  <div className="mb-8">
-                    <h4 className="font-semibold text-gray-900 mb-3">Room Amenities:</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {room.amenities.slice(0, 4).map((amenity, i) => (
-                        <div key={i} className="flex items-center text-gray-600 text-sm">
-                          <CheckCircle className="w-4 h-4 mr-2 text-[#D4AF37]" />
-                          {amenity}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex gap-4 mt-auto">
-                  <Link 
-                    to={`/rooms/${room.id}`}
-                    className="flex-1 text-center border-2 border-[#0B1B3D] text-[#0B1B3D] py-3 rounded-md font-medium hover:bg-gray-50 transition-colors"
-                  >
-                    View Details
-                  </Link>
-                  <Link 
-                    to={`/book/${room.id}`}
-                    className="flex-1 text-center bg-[#D4AF37] text-white py-3 rounded-md font-medium hover:bg-[#b8952b] transition-colors"
-                  >
-                    Book Now
-                  </Link>
-                </div>
+            </div>
+            
+            <div className="p-6 flex-grow flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                  {room.roomType}
+                </span>
+                <span className="flex items-center gap-1 text-sm text-slate-500 font-medium">
+                  <Users className="w-4 h-4" /> {room.capacity} Guests
+                </span>
               </div>
-            </motion.div>
-          ))}
-        </div>
+              <h2 className="text-2xl font-bold mb-3 line-clamp-1">{room.title}</h2>
+              <p className="text-slate-600 mb-6 line-clamp-2 text-sm">
+                {room.description}
+              </p>
+              
+              <div className="flex gap-4 mb-6 text-slate-400">
+                {room.amenities?.slice(0, 3).map((amenity: string, idx: number) => (
+                  <div key={idx} className="flex flex-col items-center gap-1">
+                    <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded-md">
+                      {amenity}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-auto flex gap-3">
+                <Link
+                  to={`/room/${room._id}`}
+                  className="flex-1 text-center bg-slate-100 text-slate-900 font-medium py-3 rounded-lg hover:bg-slate-200 transition-colors"
+                >
+                  View Details
+                </Link>
+                <Link
+                  to={`/book/${room._id}`}
+                  className="flex-1 text-center bg-slate-900 text-white font-medium py-3 rounded-lg hover:bg-slate-800 transition-colors shadow-sm shadow-slate-900/10"
+                >
+                  Book Now
+                </Link>
+              </div>
+            </div>
+          </div>
+        ))}
+        {rooms.length === 0 && (
+          <div className="col-span-full text-center py-10 text-slate-500">
+            No rooms available at the moment.
+          </div>
+        )}
       </div>
     </div>
   );

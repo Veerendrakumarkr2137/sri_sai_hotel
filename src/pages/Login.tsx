@@ -1,102 +1,88 @@
-import { useState, type FormEvent } from "react";
+import React, { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { setUserSession, type SessionUser } from "../lib/auth";
+import axios from "axios";
+import { AuthContext } from "../context/AuthContext";
+import { toast } from "react-toastify";
 
 export default function Login() {
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setError("");
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
     try {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        setError(data.error || "Login failed");
-        return;
+      const { data } = await axios.post("http://localhost:3000/api/auth/login", formData);
+      if (data.success) {
+        login(data.token, data.user);
+        toast.success("Login successful");
+        navigate("/");
       }
-
-      setUserSession(data.token, data.user as SessionUser);
-      navigate("/", { replace: true });
-    } catch (requestError) {
-      setError("Unable to sign in right now. Please try again.");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Login failed");
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-96 rounded bg-white p-8 shadow">
-        <h2 className="mb-6 text-center text-2xl font-bold">
-          Login
-        </h2>
-
-        {error && (
-          <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {error}
+    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl border border-slate-100 shadow-sm">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900">
+            Sign in to your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-600">
+            Or{" "}
+            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+              create a new account
+            </Link>
+          </p>
+        </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Email address</label>
+              <input
+                name="email"
+                type="email"
+                required
+                className="appearance-none relative block w-full px-4 py-3 border border-slate-200 placeholder-slate-400 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:z-10 sm:text-sm transition-all"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <input
+                name="password"
+                type="password"
+                required
+                className="appearance-none relative block w-full px-4 py-3 border border-slate-200 placeholder-slate-400 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:z-10 sm:text-sm transition-all"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+              />
+            </div>
           </div>
-        )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded border p-3"
-            autoComplete="email"
-            required
-          />
-
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded border p-3"
-            autoComplete="current-password"
-            required
-          />
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded bg-[#0B1B3D] py-3 text-white disabled:opacity-70"
-          >
-            {isSubmitting ? "Signing in..." : "Login"}
-          </button>
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-semibold rounded-xl text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 transition-all shadow-lg shadow-slate-900/10 disabled:opacity-50"
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
+          </div>
         </form>
-
-        <p className="mt-3 text-right text-sm">
-          <Link to="/forgot-password" className="text-[#0B1B3D] hover:underline">
-            Forgot password?
-          </Link>
-        </p>
-
-        <p className="mt-4 text-center text-sm">
-          {"Don't have an account? "}
-          <Link to="/register" className="text-[#D4AF37]">
-            Register
-          </Link>
-        </p>
       </div>
     </div>
   );
