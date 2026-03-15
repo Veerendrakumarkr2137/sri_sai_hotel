@@ -1,8 +1,16 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { ROOMS } from "../data";
 import { motion } from "motion/react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ROOMS } from "../data";
+import {
+  clearUserSession,
+  createAuthHeaders,
+  getStoredUser,
+  getUserToken,
+  updateStoredUser,
+  type SessionUser,
+} from "../lib/auth";
 
 type BookingFormData = {
   name: string;
@@ -14,98 +22,184 @@ type BookingFormData = {
 };
 
 export default function BookingPage() {
-
   const { id } = useParams();
   const navigate = useNavigate();
-  const room = ROOMS.find(r => r.id === id);
-
+  const room = ROOMS.find((roomItem) => roomItem.id === id);
+  const [user, setUser] = useState<SessionUser | null>(() => getStoredUser());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [availableRooms, setAvailableRooms] = useState<number | null>(null);
-  
-const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const [availabilityError, setAvailabilityError] = useState("");
+  const today = new Date().toISOString().split("T")[0];
 
-const { register, handleSubmit, watch, formState: { errors } } =
-  useForm<BookingFormData>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    getValues,
+    formState: { errors },
+  } = useForm<BookingFormData>({
     defaultValues: {
-      name: savedUser.name || "",
-      email: savedUser.email || ""
-    }
+      name: user?.name || "",
+      email: user?.email || "",
+      phone: "",
+      guests: 1,
+      checkIn: "",
+      checkOut: "",
+    },
   });
+
   const checkInDate = watch("checkIn");
   const checkOutDate = watch("checkOut");
 
-  // 🔐 LOGIN CHECK
   useEffect(() => {
-
-    const token = localStorage.getItem("token");
+    const token = getUserToken();
 
     if (!token) {
-      alert("Please login to continue booking");
-      navigate("/login");
+      navigate("/login", { replace: true });
+      return;
     }
 
-  }, []);
+    let isCancelled = false;
 
-  // 📦 FETCH ROOM AVAILABILITY
-  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const response = await fetch("/api/me", {
+          headers: createAuthHeaders(token),
+        });
 
-    if (!room) return;
+        const data = await response.json();
 
-    fetch(`/api/availability/${room.name}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setAvailableRooms(data.available);
+        if (!response.ok || !data.success) {
+          clearUserSession();
+          navigate("/login", { replace: true });
+          return;
         }
+
+        if (!isCancelled) {
+          const nextUser = data.user as SessionUser;
+          updateStoredUser(nextUser);
+          setUser(nextUser);
+
+          const currentValues = getValues();
+          reset({
+            ...currentValues,
+            name: nextUser.name,
+            email: nextUser.email,
+          });
+        }
+      } catch (requestError) {
+        if (!isCancelled) {
+          clearUserSession();
+          navigate("/login", { replace: true });
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingUser(false);
+        }
+      }
+    };
+
+    loadUser();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [getValues, navigate, reset]);
+
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    setAvailabilityError("");
+
+    const searchParams = new URLSearchParams();
+
+    if (checkInDate && checkOutDate) {
+      searchParams.set("checkIn", checkInDate);
+      searchParams.set("checkOut", checkOutDate);
+    }
+
+    const availabilityUrl =
+      `/api/availability/${encodeURIComponent(room.name)}` +
+      `${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+
+    fetch(availabilityUrl)
+      .then(async (response) => {
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Availability is unavailable right now.");
+        }
+
+        setAvailableRooms(data.available as number);
       })
-      .catch(err => console.error("Availability error:", err));
+      .catch((error) => {
+        console.error("Availability error:", error);
+        setAvailabilityError("Availability is unavailable right now.");
+      });
+  }, [checkInDate, checkOutDate, room]);
 
-  }, [room]);
-
-  // 💰 TOTAL PRICE CALCULATION
   const calculateTotal = () => {
-
-    if (!checkInDate || !checkOutDate || !room)
+    if (!checkInDate || !checkOutDate || !room) {
       return room?.price || 0;
+    }
 
     const start = new Date(checkInDate);
     const end = new Date(checkOutDate);
+    const diffTime = end.getTime() - start.getTime();
 
-    const diffTime = Math.abs(end.getTime() - start.getTime());
+    if (diffTime <= 0) {
+      return room.price;
+    }
 
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    return diffDays > 0 ? diffDays * room.price : room.price;
+    return diffDays * room.price;
   };
 
-  // 📩 BOOKING SUBMIT
   const onSubmit = async (data: BookingFormData) => {
+    if (!room) {
+      return;
+    }
 
-    if (!room) return;
+    const token = getUserToken();
+
+    if (!token) {
+      clearUserSession();
+      navigate("/login", { replace: true });
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
-
-      const token = localStorage.getItem("token");
-
       const response = await fetch("/api/bookings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          ...createAuthHeaders(token),
         },
         body: JSON.stringify({
-          ...data,
           roomType: room.name,
-          totalPrice: calculateTotal()
-        })
+          phone: data.phone,
+          checkIn: data.checkIn,
+          checkOut: data.checkOut,
+          guests: data.guests,
+        }),
       });
 
       const result = await response.json();
 
-      if (result.success) {
+      if (response.status === 401 || response.status === 403) {
+        clearUserSession();
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      if (response.ok && result.success) {
         setSuccess(true);
         setTimeout(() => {
           navigate("/");
@@ -120,28 +214,32 @@ const { register, handleSubmit, watch, formState: { errors } } =
       setIsSubmitting(false);
     }
   };
-  if (!room)
-    return <div className="p-20 text-center">Room not found</div>;
 
-  // 🎉 SUCCESS SCREEN
+  if (!room) {
+    return <div className="p-20 text-center">Room not found</div>;
+  }
+
+  if (isLoadingUser) {
+    return <div className="p-20 text-center">Loading your account...</div>;
+  }
+
   if (success) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center bg-slate-50">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-white p-10 rounded-2xl shadow-xl text-center max-w-md w-full"
+          className="w-full max-w-md rounded-2xl bg-white p-10 text-center shadow-xl"
         >
-          <div className="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                d="M5 13l4 4L19 7"></path>
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-500">
+            <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
             </svg>
           </div>
-          <h2 className="text-3xl font-serif font-bold text-[#0B1B3D] mb-4">
+          <h2 className="mb-4 text-3xl font-serif font-bold text-[#0B1B3D]">
             Booking Confirmed!
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="mb-6 text-gray-600">
             Thank you for choosing Hotel Sai International.
             We have sent a confirmation email with your booking details.
           </p>
@@ -152,11 +250,12 @@ const { register, handleSubmit, watch, formState: { errors } } =
       </div>
     );
   }
+
   return (
     <div className="w-full bg-slate-50 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#0B1B3D] mb-2">
+          <h1 className="mb-2 text-3xl font-serif font-bold text-[#0B1B3D] md:text-4xl">
             Complete Your Booking
           </h1>
           <p className="text-gray-600">
@@ -166,84 +265,108 @@ const { register, handleSubmit, watch, formState: { errors } } =
             </span>
           </p>
         </div>
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* FORM */}
+        <div className="flex flex-col gap-8 md:flex-row">
           <div className="md:w-2/3">
-            <div className="bg-white rounded-xl shadow-md p-8 border border-gray-100">
-              <h3 className="text-xl font-semibold mb-6 border-b pb-4">
+            <div className="rounded-xl border border-gray-100 bg-white p-8 shadow-md">
+              <h3 className="mb-6 border-b pb-4 text-xl font-semibold">
                 Guest Information
               </h3>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <input 
+                <input
                   {...register("name", { required: "Name is required" })}
                   readOnly
+                  className="w-full rounded-md border bg-slate-50 p-3 text-slate-700"
                 />
-                <input 
+                <input
                   type="email"
                   {...register("email", { required: "Email is required" })}
                   readOnly
+                  className="w-full rounded-md border bg-slate-50 p-3 text-slate-700"
                 />
-                <input
-                  {...register("phone", { required: true })}
-                  placeholder="Phone"
-                  className="w-full border p-3 rounded-md"
-                />
-                <input
-                  type="date"
-                  {...register("checkIn", { required: true })}
-                  className="w-full border p-3 rounded-md"
-                />
-                <input
-                  type="date"
-                  {...register("checkOut", { required: true })}
-                  className="w-full border p-3 rounded-md"
-                />
+                <div>
+                  <input
+                    {...register("phone", { required: "Phone is required" })}
+                    placeholder="Phone"
+                    className="w-full rounded-md border p-3"
+                  />
+                  {errors.phone && (
+                    <p className="mt-2 text-sm text-red-600">{errors.phone.message}</p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    type="date"
+                    min={today}
+                    {...register("checkIn", { required: "Check-in date is required" })}
+                    className="w-full rounded-md border p-3"
+                  />
+                  {errors.checkIn && (
+                    <p className="mt-2 text-sm text-red-600">{errors.checkIn.message}</p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    type="date"
+                    min={checkInDate || today}
+                    {...register("checkOut", {
+                      required: "Check-out date is required",
+                      validate: (value) =>
+                        !checkInDate || new Date(value) > new Date(checkInDate) || "Check-out must be after check-in",
+                    })}
+                    className="w-full rounded-md border p-3"
+                  />
+                  {errors.checkOut && (
+                    <p className="mt-2 text-sm text-red-600">{errors.checkOut.message}</p>
+                  )}
+                </div>
                 <select
                   {...register("guests", { required: true, valueAsNumber: true })}
-                  className="w-full border p-3 rounded-md"
+                  className="w-full rounded-md border p-3"
                 >
-                  {[...Array(room.capacity)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      {i + 1} Guest
+                  {Array.from({ length: room.capacity }, (_, index) => index + 1).map((guestCount) => (
+                    <option key={guestCount} value={guestCount}>
+                      {guestCount} Guest
                     </option>
                   ))}
-
                 </select>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-[#0B1B3D] text-white py-4 rounded-md font-medium"
+                  disabled={isSubmitting || availableRooms === 0}
+                  className="w-full rounded-md bg-[#0B1B3D] py-4 font-medium text-white disabled:opacity-70"
                 >
                   {isSubmitting ? "Processing..." : "Confirm Booking"}
                 </button>
               </form>
             </div>
           </div>
-          {/* ROOM SUMMARY */}
+
           <div className="md:w-1/3">
-            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 sticky top-28">
+            <div className="sticky top-28 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-md">
               <img
                 src={room.images[0]}
                 alt={room.name}
-                className="w-full h-48 object-cover"
+                className="h-48 w-full object-cover"
               />
               <div className="p-6">
-                <h4 className="text-xl font-serif font-bold text-[#0B1B3D] mb-4">
+                <h4 className="mb-4 text-xl font-serif font-bold text-[#0B1B3D]">
                   {room.name}
                 </h4>
                 {availableRooms !== null && (
-                  <p className="text-green-600 font-semibold mb-2">
+                  <p className="mb-2 font-semibold text-green-600">
                     {availableRooms} Rooms Available
                   </p>
                 )}
+                {availabilityError && (
+                  <p className="mb-2 text-sm text-amber-700">{availabilityError}</p>
+                )}
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Price per night</span>
-                  <span>₹{room.price}</span>
+                  <span>{`Rs. ${room.price.toLocaleString("en-IN")}`}</span>
                 </div>
                 {checkInDate && checkOutDate && (
-                  <div className="flex justify-between text-[#D4AF37] font-medium mt-2">
+                  <div className="mt-2 flex justify-between font-medium text-[#D4AF37]">
                     <span>Total Stay</span>
-                    <span>₹{calculateTotal()}</span>
+                    <span>{`Rs. ${calculateTotal().toLocaleString("en-IN")}`}</span>
                   </div>
                 )}
               </div>
