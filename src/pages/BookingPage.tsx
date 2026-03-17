@@ -17,6 +17,7 @@ export default function BookingPage() {
   const { user, token } = useContext(AuthContext);
 
   const [room, setRoom] = useState<any>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "upi">("razorpay");
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -72,51 +73,104 @@ export default function BookingPage() {
       // 1. Create order
       const orderRes = await axios.post(
         `${API_BASE_URL}/api/bookings/create-order`,
-        { amount: totalAmount },
+        { amount: totalAmount, paymentMethod },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const options = {
-        key: "test_key", // Use actual key in production
-        amount: orderRes.data.order.amount,
-        currency: "INR",
-        name: "Hotel Sai International",
-        description: `Booking for ${room.title}`,
-        order_id: orderRes.data.order.id,
-        handler: async function (response: any) {
-          // 2. Verify payment & create booking
-          try {
-            const verifyRes = await axios.post(
-              `${API_BASE_URL}/api/bookings/verify-payment`,
-              {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                bookingData: {
-                  roomId: room._id,
-                  ...formData,
-                  totalPrice: totalAmount,
+      if (paymentMethod === "upi") {
+        // UPI Payment via Razorpay
+        const options = {
+          key: "test_key",
+          amount: orderRes.data.order.amount,
+          currency: "INR",
+          name: "Hotel Sai International",
+          description: `Booking for ${room.title}`,
+          order_id: orderRes.data.order.id,
+          method: "upi",
+          upi_link: true,
+          handler: async function (response: any) {
+            try {
+              const verifyRes = await axios.post(
+                `${API_BASE_URL}/api/bookings/verify-payment`,
+                {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  paymentMethod: "upi",
+                  bookingData: {
+                    roomId: room._id,
+                    ...formData,
+                    totalPrice: totalAmount,
+                  },
                 },
-              },
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
 
-            if (verifyRes.data.success) {
-              toast.success("Booking confirmed successfully!");
-              navigate("/my-bookings");
+              if (verifyRes.data.success) {
+                toast.success("Booking confirmed successfully!");
+                navigate("/my-bookings");
+              }
+            } catch (err) {
+              toast.error("Payment verification failed");
             }
-          } catch (err) {
-            toast.error("Payment verification failed");
-          }
-        },
-        prefill: {
-          name: formData.name,
-          email: formData.email,
-          contact: formData.phone,
-        },
-      };
+          },
+          prefill: {
+            contact: formData.phone,
+            email: formData.email,
+          },
+        };
 
-      const rzp = new window.Razorpay(options);
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } else {
+        // Card Payment via Razorpay
+        const options = {
+          key: "test_key",
+          amount: orderRes.data.order.amount,
+          currency: "INR",
+          name: "Hotel Sai International",
+          description: `Booking for ${room.title}`,
+          order_id: orderRes.data.order.id,
+          handler: async function (response: any) {
+            try {
+              const verifyRes = await axios.post(
+                `${API_BASE_URL}/api/bookings/verify-payment`,
+                {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  paymentMethod: "card",
+                  bookingData: {
+                    roomId: room._id,
+                    ...formData,
+                    totalPrice: totalAmount,
+                  },
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+
+              if (verifyRes.data.success) {
+                toast.success("Booking confirmed successfully!");
+                navigate("/my-bookings");
+              }
+            } catch (err) {
+              toast.error("Payment verification failed");
+            }
+          },
+          prefill: {
+            name: formData.name,
+            email: formData.email,
+            contact: formData.phone,
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Payment failed");
+    }
+  };
       rzp.open();
     } catch (err) {
       toast.error("Failed to initiate payment");
@@ -234,11 +288,39 @@ export default function BookingPage() {
             </div>
           </div>
 
+          <div className="mt-8 pt-6 border-t border-slate-100">
+            <label className="block mb-4 text-sm font-semibold text-slate-900">Payment Method</label>
+            <div className="flex gap-4">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="razorpay"
+                  checked={paymentMethod === "razorpay"}
+                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi")}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <span className="ml-3 text-slate-700 font-medium">💳 Card/Wallet</span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="upi"
+                  checked={paymentMethod === "upi"}
+                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi")}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <span className="ml-3 text-slate-700 font-medium">📱 UPI</span>
+              </label>
+            </div>
+          </div>
+
           <button
             type="submit"
             className="w-full bg-slate-900 text-white font-semibold p-4 rounded-xl mt-8 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:scale-[0.98]"
           >
-            Pay &&nbsp;Confirm Booking
+            Pay && {paymentMethod === "upi" ? "via UPI" : "with Card"}&nbsp;Confirm Booking
           </button>
         </form>
       </div>

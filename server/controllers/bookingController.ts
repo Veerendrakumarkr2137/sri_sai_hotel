@@ -39,6 +39,7 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
+      paymentMethod = "card",
       bookingData
     } = req.body;
 
@@ -75,6 +76,7 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
       totalPrice,
       paymentStatus: "paid",
       bookingStatus: "confirmed",
+      paymentMethod: paymentMethod || "card",
       paymentId: razorpay_payment_id,
       orderId: razorpay_order_id,
       signature: razorpay_signature,
