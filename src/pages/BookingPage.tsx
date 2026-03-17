@@ -171,12 +171,6 @@ export default function BookingPage() {
       toast.error(err.response?.data?.error || "Payment failed");
     }
   };
-      rzp.open();
-    } catch (err) {
-      toast.error("Failed to initiate payment");
-      console.error(err);
-    }
-  };
 
   if (!room) return <div className="text-center py-20 text-xl">Loading booking details...</div>;
 
