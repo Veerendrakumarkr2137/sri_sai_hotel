@@ -43,8 +43,9 @@ export const registerUser = async (req: Request, res: Response): Promise<any> =>
       message: "Registered successfully",
       user: { id: user._id, name: user.name, email: user.email },
     });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: "Server error" });
+  } catch (error: any) {
+    console.error("Registration error:", error.message);
+    return res.status(500).json({ success: false, error: error.message || "Server error during registration" });
   }
 };
 
@@ -71,8 +72,9 @@ export const loginUser = async (req: Request, res: Response): Promise<any> => {
       token: issueUserToken(user),
       user: { id: user._id, name: user.name, email: user.email },
     });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: "Server error" });
+  } catch (error: any) {
+    console.error("Login error:", error.message);
+    return res.status(500).json({ success: false, error: error.message || "Server error during login" });
   }
 };
 

@@ -20,7 +20,20 @@ const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://veerendra2137_db_user:<db_password>@hotel.vbn2mj8.mongodb.net/";
 
 const app = express();
-app.use(cors());
+
+// CORS configuration
+app.use(cors({
+  origin: [
+    "https://sri-sai-hotel.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    process.env.FRONTEND_URL || "",
+  ].filter(Boolean),
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
 app.use(express.json());
 
 // API Routes
