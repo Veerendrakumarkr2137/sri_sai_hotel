@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { Wifi, Coffee, Users, Tv } from "lucide-react";
+import { API_BASE_URL } from "../lib/api";
 
 export default function Rooms() {
   const [rooms, setRooms] = useState<any[]>([]);

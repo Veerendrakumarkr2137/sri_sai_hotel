@@ -4,6 +4,7 @@ import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { ShieldAlert } from "lucide-react";
+import { API_BASE_URL } from "../lib/api";
 
 export default function AdminLogin() {
   const [formData, setFormData] = useState({ username: "", password: "" });

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { Users, Building, ClipboardList, IndianRupee } from "lucide-react";
+import { API_BASE_URL } from "../lib/api";
 
 export default function AdminDashboard() {
   const { token } = useContext(AuthContext);

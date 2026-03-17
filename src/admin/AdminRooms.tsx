@@ -3,6 +3,7 @@ import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { API_BASE_URL } from "../lib/api";
 
 export default function AdminRooms() {
   const { token } = useContext(AuthContext);

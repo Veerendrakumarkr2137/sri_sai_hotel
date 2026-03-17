@@ -4,6 +4,7 @@ import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import { CalendarDays, Home, CreditCard } from "lucide-react";
+import { API_BASE_URL } from "../lib/api";
 
 export default function MyBookings() {
   const { token } = useContext(AuthContext);

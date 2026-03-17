@@ -3,6 +3,8 @@ import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { Trash2, CheckCircle2, Copy } from "lucide-react";
+import { API_BASE_URL } from "../lib/api";
+
 
 export default function AdminBookings() {
   const { token } = useContext(AuthContext);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { Check, Users, Coffee, Wifi, Car, Waves, Tv, Shield } from "lucide-react";
+import { API_BASE_URL } from "../lib/api";
 
 export default function RoomDetails() {
   const { id } = useParams();
