@@ -8,7 +8,7 @@ const getApiBaseUrl = () => {
   // In production (Vercel), use Render backend URL
   // In development, use localhost
   if (import.meta.env.PROD) {
-    return "https://sri-sai-hotel-backend.onrender.com"; // Change to your actual Render URL
+    return "https://sri-sai-hotel.onrender.com";
   }
   
   return "http://localhost:3000";
