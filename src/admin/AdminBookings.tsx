@@ -14,7 +14,7 @@ export default function AdminBookings() {
 
   const fetchBookings = async () => {
     try {
-      const { data } = await axios.get("http://localhost:3000/api/bookings/admin/all", {
+      const { data } = await axios.get(`${API_BASE_URL}/api/bookings/admin/all`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (data.success) {
@@ -28,7 +28,7 @@ export default function AdminBookings() {
   const deleteBooking = async (id: string) => {
     if (!window.confirm("Are you sure?")) return;
     try {
-      await axios.delete(`http://localhost:3000/api/bookings/admin/${id}`, {
+      await axios.delete(`${API_BASE_URL}/api/bookings/admin/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success("Booking deleted");
@@ -40,7 +40,7 @@ export default function AdminBookings() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await axios.put(`http://localhost:3000/api/bookings/admin/${id}/status`, { status }, {
+      await axios.put(`${API_BASE_URL}/api/bookings/admin/${id}/status`, { status }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success(`Booking ${status}`);

@@ -39,7 +39,7 @@ export default function AdminRooms() {
         amenities: ["Free WiFi", "TV", "AC"] // Default amenities for simplicity via dashboard
       };
       
-      const { data } = await axios.post("http://localhost:3000/api/rooms", payload, {
+      const { data } = await axios.post(`${API_BASE_URL}/api/rooms`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -66,7 +66,7 @@ export default function AdminRooms() {
 
   const fetchRooms = async () => {
     try {
-      const { data } = await axios.get("http://localhost:3000/api/rooms");
+      const { data } = await axios.get(`${API_BASE_URL}/api/rooms`);
       if (data.success) {
         setRooms(data.rooms);
       }
@@ -78,7 +78,7 @@ export default function AdminRooms() {
   const deleteRoom = async (id: string) => {
     if (!window.confirm("Are you sure?")) return;
     try {
-      await axios.delete(`http://localhost:3000/api/rooms/${id}`, {
+      await axios.delete(`${API_BASE_URL}/api/rooms/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success("Room deleted");

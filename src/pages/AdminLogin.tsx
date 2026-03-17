@@ -15,7 +15,7 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await axios.post("http://localhost:3000/api/auth/admin/login", formData);
+      const { data } = await axios.post(`${API_BASE_URL}/api/auth/admin/login`, formData);
       if (data.success) {
         login(data.token, { id: "admin", name: "Admin", email: "admin@hotelsai.com", role: "admin" });
         toast.success("Admin login successful");

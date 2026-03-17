@@ -34,7 +34,7 @@ export default function BookingPage() {
 
     const fetchRoom = async () => {
       try {
-        const { data } = await axios.get(`http://localhost:3000/api/rooms/${id}`);
+        const { data } = await axios.get(`${API_BASE_URL}/api/rooms/${id}`);
         if (data.success) {
           setRoom(data.room);
         }
@@ -70,7 +70,7 @@ export default function BookingPage() {
 
       // 1. Create order
       const orderRes = await axios.post(
-        "http://localhost:3000/api/bookings/create-order",
+        `${API_BASE_URL}/api/bookings/create-order`,
         { amount: totalAmount },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -86,7 +86,7 @@ export default function BookingPage() {
           // 2. Verify payment & create booking
           try {
             const verifyRes = await axios.post(
-              "http://localhost:3000/api/bookings/verify-payment",
+              `${API_BASE_URL}/api/bookings/verify-payment`,
               {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,

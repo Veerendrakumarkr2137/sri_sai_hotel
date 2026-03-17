@@ -17,7 +17,7 @@ dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/hotel-sai";
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://veerendra2137_db_user:<db_password>@hotel.vbn2mj8.mongodb.net/";
 
 const app = express();
 app.use(cors());

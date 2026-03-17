@@ -10,7 +10,7 @@ export default function Rooms() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const { data } = await axios.get("http://localhost:3000/api/rooms");
+        const { data } = await axios.get(`${API_BASE_URL}/api/rooms`);
         if (data.success) {
           setRooms(data.rooms);
         }

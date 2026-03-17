@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
+import { API_BASE_URL } from "../lib/api";
 
 export default function Register() {
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
@@ -18,10 +19,10 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await axios.post("http://localhost:3000/api/auth/register", formData);
+      const { data } = await axios.post(`${API_BASE_URL}/api/auth/register`, formData);
       if (data.success) {
         // Log them right in
-        const loginRes = await axios.post("http://localhost:3000/api/auth/login", {
+        const loginRes = await axios.post(`${API_BASE_URL}/api/auth/login`, {
           email: formData.email,
           password: formData.password
         });

@@ -11,7 +11,7 @@ export default function RoomDetails() {
   useEffect(() => {
     const fetchRoom = async () => {
       try {
-        const { data } = await axios.get(`http://localhost:3000/api/rooms/${id}`);
+        const { data } = await axios.get(`${API_BASE_URL}/api/rooms/${id}`);
         if (data.success) {
           setRoom(data.room);
         }

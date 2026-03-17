@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
+import { API_BASE_URL } from "../lib/api";
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -18,7 +19,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await axios.post("http://localhost:3000/api/auth/login", formData);
+      const { data } = await axios.post(`${API_BASE_URL}/api/auth/login`, formData);
       if (data.success) {
         login(data.token, data.user);
         toast.success("Login successful");
