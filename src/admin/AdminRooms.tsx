@@ -8,7 +8,8 @@ import { API_BASE_URL } from "../lib/api";
 export default function AdminRooms() {
   const { token } = useContext(AuthContext);
   const [rooms, setRooms] = useState<any[]>([]);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -28,6 +29,20 @@ export default function AdminRooms() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleEdit = (room: any) => {
+    setEditingRoom(room);
+    setFormData({
+      title: room.title,
+      description: room.description,
+      price: room.price.toString(),
+      images: room.images || [""],
+      roomType: room.roomType,
+      capacity: room.capacity.toString(),
+      availableRooms: room.availableRooms.toString()
+    });
+    setShowModal(true);
+  };
+
   const handleAddRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -40,26 +55,47 @@ export default function AdminRooms() {
         amenities: ["Free WiFi", "TV", "AC"] // Default amenities for simplicity via dashboard
       };
       
-      const { data } = await axios.post(`${API_BASE_URL}/api/rooms`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (data.success) {
-        toast.success("Room added successfully");
-        setShowAddModal(false);
-        setFormData({
-          title: "",
-          description: "",
-          price: "",
-          images: [""],
-          roomType: "Deluxe Room",
-          capacity: "2",
-          availableRooms: "1"
+      if (editingRoom) {
+        const { data } = await axios.put(`${API_BASE_URL}/api/rooms/${editingRoom._id}`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-        fetchRooms();
+        if (data.success) {
+          toast.success("Room updated successfully");
+          setEditingRoom(null);
+          setShowModal(false);
+          setFormData({
+            title: "",
+            description: "",
+            price: "",
+            images: [""],
+            roomType: "Deluxe Room",
+            capacity: "2",
+            availableRooms: "1"
+          });
+          fetchRooms();
+        }
+      } else {
+        const { data } = await axios.post(`${API_BASE_URL}/api/rooms`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (data.success) {
+          toast.success("Room added successfully");
+          setShowModal(false);
+          setFormData({
+            title: "",
+            description: "",
+            price: "",
+            images: [""],
+            roomType: "Deluxe Room",
+            capacity: "2",
+            availableRooms: "1"
+          });
+          fetchRooms();
+        }
       }
     } catch (err) {
-      toast.error("Failed to add room");
+      toast.error(editingRoom ? "Failed to update room" : "Failed to add room");
     } finally {
       setLoading(false);
     }
@@ -93,7 +129,7 @@ export default function AdminRooms() {
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-slate-900">Manage Rooms</h1>
-        <button onClick={() => setShowAddModal(true)} className="bg-slate-900 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-lg font-semibold">
+        <button onClick={() => setShowModal(true)} className="bg-slate-900 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-lg font-semibold">
           <PlusCircle className="w-5 h-5" /> Add New Room
         </button>
       </div>
@@ -125,6 +161,9 @@ export default function AdminRooms() {
                 <td className="px-6 py-4 font-bold text-slate-900">₹{room.price.toLocaleString("en-IN")}</td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-3">
+                    <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-800 transition-colors p-2 bg-blue-50 rounded-lg">
+                      <Edit className="w-5 h-5" />
+                    </button>
                     <button onClick={() => deleteRoom(room._id)} className="text-red-600 hover:text-red-800 transition-colors p-2 bg-red-50 rounded-lg">
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -141,12 +180,12 @@ export default function AdminRooms() {
         )}
       </div>
 
-      {showAddModal && (
+      {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Add New Room</h2>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-500 hover:text-slate-900 text-xl font-bold">×</button>
+              <h2 className="text-2xl font-bold">{editingRoom ? "Edit Room" : "Add New Room"}</h2>
+              <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-slate-900 text-xl font-bold">×</button>
             </div>
             
             <form onSubmit={handleAddRoom} className="space-y-4">
@@ -191,11 +230,11 @@ export default function AdminRooms() {
               </div>
 
               <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">
+                <button type="button" onClick={() => { setShowModal(false); setEditingRoom(null); setFormData({ title: "", description: "", price: "", images: [""], roomType: "Deluxe Room", capacity: "2", availableRooms: "1" }); }} className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">
                   Cancel
                 </button>
                 <button type="submit" disabled={loading} className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50">
-                  {loading ? "Saving..." : "Save Room"}
+                  {loading ? "Saving..." : editingRoom ? "Update Room" : "Save Room"}
                 </button>
               </div>
             </form>
