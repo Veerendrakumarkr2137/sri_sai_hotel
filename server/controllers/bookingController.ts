@@ -79,6 +79,8 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
     return res.status(500).json({ success: false, error: "Booking creation failed" });
   }
 };
+
+export const createManualBooking = async (req: any, res: Response): Promise<any> => {
   try {
     const { bookingData } = req.body;
     const { roomId, name, email, phone, checkInDate, checkOutDate, guests, totalPrice } = bookingData;
