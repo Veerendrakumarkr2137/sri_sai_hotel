@@ -97,11 +97,13 @@ export default function AdminBookings() {
                     onChange={(e) => updateStatus(booking._id, e.target.value)}
                     className={`block w-full text-sm font-semibold rounded-lg border-slate-200 focus:ring-slate-900 focus:border-slate-900 cursor-pointer ${
                       booking.bookingStatus === 'confirmed' ? "text-emerald-600 bg-emerald-50" :
+                      booking.bookingStatus === 'pending_payment' ? "text-orange-600 bg-orange-50" :
                       booking.bookingStatus === 'pending' ? "text-amber-600 bg-amber-50" :
                       "text-slate-600 bg-slate-50"
                     } p-2 px-3 border border-transparent outline-none`}
                   >
                     <option value="pending" className="text-slate-900">Pending</option>
+                    <option value="pending_payment" className="text-slate-900">Pending Payment</option>
                     <option value="confirmed" className="text-slate-900">Confirmed</option>
                     <option value="cancelled" className="text-slate-900">Cancelled</option>
                     <option value="completed" className="text-slate-900">Completed</option>
