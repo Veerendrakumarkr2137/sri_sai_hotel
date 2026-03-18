@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { Users, Building, ClipboardList, IndianRupee } from "lucide-react";
@@ -52,6 +53,39 @@ export default function AdminDashboard() {
             </div>
           );
         })}
+      </div>
+
+      <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 mb-8">
+        <h2 className="text-xl font-bold text-slate-900 mb-6">Quick Actions</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <Link
+            to="/admin/rooms"
+            className="flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors border border-blue-200"
+          >
+            <Building className="w-6 h-6 text-blue-600" />
+            <div>
+              <h3 className="font-semibold text-slate-900">Manage Rooms</h3>
+              <p className="text-sm text-slate-600">Add, edit, or delete rooms</p>
+            </div>
+          </Link>
+          <Link
+            to="/admin/bookings"
+            className="flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 rounded-xl transition-colors border border-green-200"
+          >
+            <ClipboardList className="w-6 h-6 text-green-600" />
+            <div>
+              <h3 className="font-semibold text-slate-900">Manage Bookings</h3>
+              <p className="text-sm text-slate-600">View and update bookings</p>
+            </div>
+          </Link>
+          <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-xl border border-purple-200">
+            <Users className="w-6 h-6 text-purple-600" />
+            <div>
+              <h3 className="font-semibold text-slate-900">User Management</h3>
+              <p className="text-sm text-slate-600">Coming soon</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">

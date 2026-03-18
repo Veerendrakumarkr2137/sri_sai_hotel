@@ -33,7 +33,52 @@ export const createRazorpayOrder = async (req: Request, res: Response): Promise<
   }
 };
 
-export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any> => {
+export const createManualBooking = async (req: any, res: Response): Promise<any> => {
+  try {
+    const { bookingData } = req.body;
+    const { roomId, name, email, phone, checkInDate, checkOutDate, guests, totalPrice } = bookingData;
+    
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ success: false, error: "Room not found" });
+    }
+
+    const bookingRef = `HSI-${Date.now()}`;
+    const booking = await Booking.create({
+      bookingRef,
+      userId: req.auth?.userId,
+      roomId,
+      name,
+      email,
+      phone,
+      checkInDate,
+      checkOutDate,
+      guests,
+      totalPrice,
+      paymentStatus: "pending",
+      bookingStatus: "pending_payment",
+      paymentMethod: "manual_upi",
+      paymentId: null,
+      orderId: null,
+      signature: null,
+    });
+
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Booking Pending Payment - Hotel Sai International",
+        text: `Hello ${name}, your booking for room ${room.title} is pending payment. Please transfer Rs. ${totalPrice} to UPI ID: ${process.env.UPI_ID || "your-upi-id@phonepe"}. Booking Ref: ${bookingRef}. Once payment is received, your booking will be confirmed.`,
+      });
+    } catch (e) {
+      console.error("Email error:", e);
+    }
+
+    return res.status(201).json({ success: true, booking });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: "Booking creation failed" });
+  }
+};
   try {
     const {
       razorpay_order_id,

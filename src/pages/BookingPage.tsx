@@ -17,7 +17,7 @@ export default function BookingPage() {
   const { user, token } = useContext(AuthContext);
 
   const [room, setRoom] = useState<any>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "upi">("razorpay");
+  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "upi" | "manual_upi">("razorpay");
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -70,6 +70,27 @@ export default function BookingPage() {
     try {
       const totalAmount = calculateTotal();
 
+      if (paymentMethod === "manual_upi") {
+        // Manual UPI Payment
+        const { data } = await axios.post(
+          `${API_BASE_URL}/api/bookings/manual-booking`,
+          {
+            bookingData: {
+              roomId: room._id,
+              ...formData,
+              totalPrice: totalAmount,
+            },
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (data.success) {
+          toast.success("Booking created! Please complete payment via UPI to confirm.");
+          navigate("/my-bookings");
+        }
+        return;
+      }
+
       // 1. Create order
       const orderRes = await axios.post(
         `${API_BASE_URL}/api/bookings/create-order`,
@@ -80,7 +101,7 @@ export default function BookingPage() {
       if (paymentMethod === "upi") {
         // UPI Payment via Razorpay
         const options = {
-          key: "test_key",
+          key: process.env.RAZORPAY_KEY_ID || "test_key",
           amount: orderRes.data.order.amount,
           currency: "INR",
           name: "Hotel Sai International",
@@ -125,7 +146,7 @@ export default function BookingPage() {
       } else {
         // Card Payment via Razorpay
         const options = {
-          key: "test_key",
+          key: process.env.RAZORPAY_KEY_ID || "test_key",
           amount: orderRes.data.order.amount,
           currency: "INR",
           name: "Hotel Sai International",
@@ -291,7 +312,7 @@ export default function BookingPage() {
                   name="paymentMethod"
                   value="razorpay"
                   checked={paymentMethod === "razorpay"}
-                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi")}
+                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi" | "manual_upi")}
                   className="w-4 h-4 cursor-pointer"
                 />
                 <span className="ml-3 text-slate-700 font-medium">💳 Card/Wallet</span>
@@ -302,10 +323,21 @@ export default function BookingPage() {
                   name="paymentMethod"
                   value="upi"
                   checked={paymentMethod === "upi"}
-                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi")}
+                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi" | "manual_upi")}
                   className="w-4 h-4 cursor-pointer"
                 />
                 <span className="ml-3 text-slate-700 font-medium">📱 UPI</span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="manual_upi"
+                  checked={paymentMethod === "manual_upi"}
+                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi" | "manual_upi")}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <span className="ml-3 text-slate-700 font-medium">💰 Manual UPI Transfer</span>
               </label>
             </div>
           </div>
@@ -314,7 +346,7 @@ export default function BookingPage() {
             type="submit"
             className="w-full bg-slate-900 text-white font-semibold p-4 rounded-xl mt-8 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:scale-[0.98]"
           >
-            Pay && {paymentMethod === "upi" ? "via UPI" : "with Card"}&nbsp;Confirm Booking
+            Pay {paymentMethod === "upi" ? "via UPI" : paymentMethod === "manual_upi" ? "via Manual UPI" : "with Card"} & Confirm Booking
           </button>
         </form>
       </div>
