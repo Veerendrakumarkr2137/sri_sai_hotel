@@ -17,7 +17,7 @@ export default function BookingPage() {
   const { user, token } = useContext(AuthContext);
 
   const [room, setRoom] = useState<any>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "upi" | "manual_upi" | "pay_at_hotel">("razorpay");
+  const [paymentMethod, setPaymentMethod] = useState<"manual_upi" | "pay_at_hotel">("pay_at_hotel");
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -331,23 +331,12 @@ export default function BookingPage() {
                 <input
                   type="radio"
                   name="paymentMethod"
-                  value="razorpay"
-                  checked={paymentMethod === "razorpay"}
-                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi" | "manual_upi")}
+                  value="manual_upi"
+                  checked={paymentMethod === "manual_upi"}
+                  onChange={(e) => setPaymentMethod(e.target.value as "manual_upi" | "pay_at_hotel")}
                   className="w-4 h-4 cursor-pointer"
                 />
-                <span className="ml-3 text-slate-700 font-medium">💳 Card/Wallet</span>
-              </label>
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="upi"
-                  checked={paymentMethod === "upi"}
-                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi" | "manual_upi")}
-                  className="w-4 h-4 cursor-pointer"
-                />
-                <span className="ml-3 text-slate-700 font-medium">📱 UPI</span>
+                <span className="ml-3 text-slate-700 font-medium">💰 Manual UPI Transfer</span>
               </label>
               <label className="flex items-center cursor-pointer">
                 <input
@@ -355,7 +344,7 @@ export default function BookingPage() {
                   name="paymentMethod"
                   value="pay_at_hotel"
                   checked={paymentMethod === "pay_at_hotel"}
-                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi" | "manual_upi" | "pay_at_hotel")}
+                  onChange={(e) => setPaymentMethod(e.target.value as "manual_upi" | "pay_at_hotel")}
                   className="w-4 h-4 cursor-pointer"
                 />
                 <span className="ml-3 text-slate-700 font-medium">🏨 Pay at Hotel</span>
@@ -367,7 +356,7 @@ export default function BookingPage() {
             type="submit"
             className="w-full bg-slate-900 text-white font-semibold p-4 rounded-xl mt-8 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:scale-[0.98]"
           >
-            Pay {paymentMethod === "upi" ? "via UPI" : paymentMethod === "manual_upi" ? "via Manual UPI" : paymentMethod === "pay_at_hotel" ? "at Hotel" : "with Card"} & Confirm Booking
+            Pay {paymentMethod === "manual_upi" ? "via UPI" : "at Hotel"} & Confirm Booking
           </button>
         </form>
       </div>
