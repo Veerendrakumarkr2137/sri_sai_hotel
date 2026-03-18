@@ -9,10 +9,28 @@ import { API_BASE_URL } from "../lib/api";
 export default function AdminBookings() {
   const { token } = useContext(AuthContext);
   const [bookings, setBookings] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredBookings, setFilteredBookings] = useState<any[]>([]);
 
   useEffect(() => {
     fetchBookings();
   }, []);
+
+  useEffect(() => {
+    // Filter bookings based on search query
+    if (!searchQuery.trim()) {
+      setFilteredBookings(bookings);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = bookings.filter((booking) =>
+        booking.bookingRef.toLowerCase().includes(query) ||
+        booking.name.toLowerCase().includes(query) ||
+        booking.email.toLowerCase().includes(query) ||
+        booking.phone.includes(query)
+      );
+      setFilteredBookings(filtered);
+    }
+  }, [searchQuery, bookings]);
 
   const fetchBookings = async () => {
     try {
@@ -56,6 +74,19 @@ export default function AdminBookings() {
     <div className="max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold text-slate-900 mb-8">Manage Bookings</h1>
 
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Search by booking ID, name, email, or phone..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
+        />
+        {searchQuery && (
+          <p className="text-sm text-slate-500 mt-2">Found {filteredBookings.length} booking(s)</p>
+        )}
+      </div>
+
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-slate-50 border-b border-slate-100 text-slate-600">
@@ -68,7 +99,7 @@ export default function AdminBookings() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
-            {bookings.map((booking) => (
+            {filteredBookings.map((booking) => (
               <tr key={booking._id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="font-semibold text-slate-900 flex items-center gap-2">
@@ -120,9 +151,9 @@ export default function AdminBookings() {
             ))}
           </tbody>
         </table>
-        {bookings.length === 0 && (
+        {filteredBookings.length === 0 && (
           <div className="text-center py-12 text-slate-500 text-lg">
-            No bookings found.
+            {searchQuery ? "No bookings match your search." : "No bookings found."}
           </div>
         )}
       </div>

@@ -63,16 +63,15 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
       signature: null,
     });
 
-    try {
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Booking Confirmed - Hotel Sai International",
-        text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${totalPrice}. Please pay at the hotel upon arrival. Check-in: ${new Date(checkInDate).toLocaleDateString()}, Check-out: ${new Date(checkOutDate).toLocaleDateString()}.`,
-      });
-    } catch (e) {
-      console.error("Email error:", e);
-    }
+    // Send email asynchronously without blocking the response
+    transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Booking Confirmed - Hotel Sai International",
+      text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${totalPrice}. Please pay at the hotel upon arrival. Check-in: ${new Date(checkInDate).toLocaleDateString()}, Check-out: ${new Date(checkOutDate).toLocaleDateString()}.`,
+    }, (err) => {
+      if (err) console.error("Email error:", err);
+    });
 
     return res.status(201).json({ success: true, booking });
   } catch (error) {
@@ -110,16 +109,15 @@ export const createManualBooking = async (req: any, res: Response): Promise<any>
       signature: null,
     });
 
-    try {
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Booking Confirmed - Hotel Sai International",
-        text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${totalPrice}. Please complete payment by transferring to UPI ID: ${process.env.UPI_ID || "your-upi-id@phonepe"}. Check-in: ${new Date(checkInDate).toLocaleDateString()}, Check-out: ${new Date(checkOutDate).toLocaleDateString()}.`,
-      });
-    } catch (e) {
-      console.error("Email error:", e);
-    }
+    // Send email asynchronously without blocking the response
+    transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Booking Confirmed - Hotel Sai International",
+      text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${totalPrice}. Please complete payment by transferring to UPI ID: ${process.env.UPI_ID || "your-upi-id@phonepe"}. Check-in: ${new Date(checkInDate).toLocaleDateString()}, Check-out: ${new Date(checkOutDate).toLocaleDateString()}.`,
+    }, (err) => {
+      if (err) console.error("Email error:", err);
+    });
 
     return res.status(201).json({ success: true, booking });
   } catch (error) {
@@ -176,16 +174,15 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
       signature: razorpay_signature,
     });
 
-    try {
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Booking Confirmation - Hotel Sai International",
-        text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Paid: Rs. ${totalPrice}.`,
-      });
-    } catch (e) {
-      console.error("Email error:", e);
-    }
+    // Send email asynchronously without blocking the response
+    transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Booking Confirmation - Hotel Sai International",
+      text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Paid: Rs. ${totalPrice}.`,
+    }, (err) => {
+      if (err) console.error("Email error:", err);
+    });
 
     return res.status(201).json({ success: true, booking });
   } catch (error) {

@@ -86,7 +86,9 @@ export default function BookingPage() {
 
         if (data.success) {
           toast.success("Booking confirmed! Please complete payment via UPI.");
-          navigate("/my-bookings");
+          setTimeout(() => {
+            navigate("/my-bookings");
+          }, 5000); // Wait 5 seconds before redirecting
         }
         return;
       }
