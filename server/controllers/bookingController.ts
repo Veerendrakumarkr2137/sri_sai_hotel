@@ -33,7 +33,52 @@ export const createRazorpayOrder = async (req: Request, res: Response): Promise<
   }
 };
 
-export const createManualBooking = async (req: any, res: Response): Promise<any> => {
+export const createPayAtHotelBooking = async (req: any, res: Response): Promise<any> => {
+  try {
+    const { bookingData } = req.body;
+    const { roomId, name, email, phone, checkInDate, checkOutDate, guests, totalPrice } = bookingData;
+    
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ success: false, error: "Room not found" });
+    }
+
+    const bookingRef = `HSI-${Date.now()}`;
+    const booking = await Booking.create({
+      bookingRef,
+      userId: req.auth?.userId,
+      roomId,
+      name,
+      email,
+      phone,
+      checkInDate,
+      checkOutDate,
+      guests,
+      totalPrice,
+      paymentStatus: "pending",
+      bookingStatus: "confirmed",
+      paymentMethod: "pay_at_hotel",
+      paymentId: null,
+      orderId: null,
+      signature: null,
+    });
+
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Booking Confirmed - Hotel Sai International",
+        text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${totalPrice}. Please pay at the hotel upon arrival. Check-in: ${new Date(checkInDate).toLocaleDateString()}, Check-out: ${new Date(checkOutDate).toLocaleDateString()}.`,
+      });
+    } catch (e) {
+      console.error("Email error:", e);
+    }
+
+    return res.status(201).json({ success: true, booking });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: "Booking creation failed" });
+  }
+};
   try {
     const { bookingData } = req.body;
     const { roomId, name, email, phone, checkInDate, checkOutDate, guests, totalPrice } = bookingData;

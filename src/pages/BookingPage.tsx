@@ -17,7 +17,7 @@ export default function BookingPage() {
   const { user, token } = useContext(AuthContext);
 
   const [room, setRoom] = useState<any>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "upi" | "manual_upi">("razorpay");
+  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "upi" | "manual_upi" | "pay_at_hotel">("razorpay");
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -86,6 +86,27 @@ export default function BookingPage() {
 
         if (data.success) {
           toast.success("Booking created! Please complete payment via UPI to confirm.");
+          navigate("/my-bookings");
+        }
+        return;
+      }
+
+      if (paymentMethod === "pay_at_hotel") {
+        // Pay at Hotel
+        const { data } = await axios.post(
+          `${API_BASE_URL}/api/bookings/pay-at-hotel`,
+          {
+            bookingData: {
+              roomId: room._id,
+              ...formData,
+              totalPrice: totalAmount,
+            },
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (data.success) {
+          toast.success("Booking confirmed! Please pay at the hotel upon arrival.");
           navigate("/my-bookings");
         }
         return;
@@ -332,12 +353,12 @@ export default function BookingPage() {
                 <input
                   type="radio"
                   name="paymentMethod"
-                  value="manual_upi"
-                  checked={paymentMethod === "manual_upi"}
-                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi" | "manual_upi")}
+                  value="pay_at_hotel"
+                  checked={paymentMethod === "pay_at_hotel"}
+                  onChange={(e) => setPaymentMethod(e.target.value as "razorpay" | "upi" | "manual_upi" | "pay_at_hotel")}
                   className="w-4 h-4 cursor-pointer"
                 />
-                <span className="ml-3 text-slate-700 font-medium">💰 Manual UPI Transfer</span>
+                <span className="ml-3 text-slate-700 font-medium">🏨 Pay at Hotel</span>
               </label>
             </div>
           </div>
@@ -346,7 +367,7 @@ export default function BookingPage() {
             type="submit"
             className="w-full bg-slate-900 text-white font-semibold p-4 rounded-xl mt-8 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 active:scale-[0.98]"
           >
-            Pay {paymentMethod === "upi" ? "via UPI" : paymentMethod === "manual_upi" ? "via Manual UPI" : "with Card"} & Confirm Booking
+            Pay {paymentMethod === "upi" ? "via UPI" : paymentMethod === "manual_upi" ? "via Manual UPI" : paymentMethod === "pay_at_hotel" ? "at Hotel" : "with Card"} & Confirm Booking
           </button>
         </form>
       </div>

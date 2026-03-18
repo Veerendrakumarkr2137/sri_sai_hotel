@@ -3,6 +3,7 @@ import {
   createRazorpayOrder,
   verifyPaymentAndBook,
   createManualBooking,
+  createPayAtHotelBooking,
   getMyBookings,
   getAllBookings,
   deleteBooking,
@@ -15,6 +16,7 @@ const router = Router();
 router.post("/create-order", requireAuth("user"), createRazorpayOrder);
 router.post("/verify-payment", requireAuth("user"), verifyPaymentAndBook);
 router.post("/manual-booking", requireAuth("user"), createManualBooking);
+router.post("/pay-at-hotel", requireAuth("user"), createPayAtHotelBooking);
 router.get("/my-bookings", requireAuth("user"), getMyBookings);
 
 // Admin routes
