@@ -79,6 +79,8 @@ export const createManualBooking = async (req: any, res: Response): Promise<any>
     return res.status(500).json({ success: false, error: "Booking creation failed" });
   }
 };
+
+export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any> => {
   try {
     const {
       razorpay_order_id,
