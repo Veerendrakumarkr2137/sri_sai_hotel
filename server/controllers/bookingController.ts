@@ -103,7 +103,7 @@ export const createManualBooking = async (req: any, res: Response): Promise<any>
       guests,
       totalPrice,
       paymentStatus: "pending",
-      bookingStatus: "pending_payment",
+      bookingStatus: "confirmed",
       paymentMethod: "manual_upi",
       paymentId: null,
       orderId: null,
@@ -114,8 +114,8 @@ export const createManualBooking = async (req: any, res: Response): Promise<any>
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: email,
-        subject: "Booking Pending Payment - Hotel Sai International",
-        text: `Hello ${name}, your booking for room ${room.title} is pending payment. Please transfer Rs. ${totalPrice} to UPI ID: ${process.env.UPI_ID || "your-upi-id@phonepe"}. Booking Ref: ${bookingRef}. Once payment is received, your booking will be confirmed.`,
+        subject: "Booking Confirmed - Hotel Sai International",
+        text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${totalPrice}. Please complete payment by transferring to UPI ID: ${process.env.UPI_ID || "your-upi-id@phonepe"}. Check-in: ${new Date(checkInDate).toLocaleDateString()}, Check-out: ${new Date(checkOutDate).toLocaleDateString()}.`,
       });
     } catch (e) {
       console.error("Email error:", e);

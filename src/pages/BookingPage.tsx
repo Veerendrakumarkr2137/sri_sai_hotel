@@ -85,7 +85,7 @@ export default function BookingPage() {
         );
 
         if (data.success) {
-          toast.success("Booking created! Please complete payment via UPI to confirm.");
+          toast.success("Booking confirmed! Please complete payment via UPI.");
           navigate("/my-bookings");
         }
         return;
