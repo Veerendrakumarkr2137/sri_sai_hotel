@@ -71,7 +71,7 @@ export default function BookingPage() {
       const totalAmount = calculateTotal();
 
       if (paymentMethod === "manual_upi") {
-        // Manual UPI Payment
+        // Manual UPI Payment (user must confirm payment afterward)
         const { data } = await axios.post(
           `${API_BASE_URL}/api/bookings/manual-booking`,
           {
@@ -85,10 +85,8 @@ export default function BookingPage() {
         );
 
         if (data.success) {
-          toast.success("Booking confirmed! Please complete payment via UPI.");
-          setTimeout(() => {
-            navigate("/my-bookings");
-          }, 5000); // Wait 5 seconds before redirecting
+          toast.success("Booking created! Please complete payment via UPI.");
+          navigate(`/payment/${data.booking._id}`);
         }
         return;
       }

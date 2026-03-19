@@ -12,7 +12,9 @@ import roomRoutes from "./server/routes/roomRoutes";
 import bookingRoutes from "./server/routes/bookingRoutes";
 import adminRoutes from "./server/routes/adminRoutes";
 
-dotenv.config();
+const dotenvResult = dotenv.config();
+console.log("Loaded .env:", dotenvResult);
+console.log("Process cwd:", process.cwd());
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;

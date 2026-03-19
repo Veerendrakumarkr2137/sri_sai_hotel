@@ -51,6 +51,10 @@ export default function Navbar() {
                 <Link to="/my-bookings" className="text-slate-600 font-medium text-sm hover:text-slate-900">
                   My Bookings
                 </Link>
+                <Link to="/profile" className="text-slate-600 font-medium text-sm hover:text-slate-900 flex items-center gap-1">
+                  <User className="w-4 h-4" />
+                  Profile
+                </Link>
                 <div className="h-8 w-px bg-slate-200"></div>
                 <div className="flex items-center gap-2 text-slate-700 font-medium text-sm">
                   <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
@@ -103,6 +107,9 @@ export default function Navbar() {
             <>
               <Link to="/my-bookings" className="font-semibold px-4 py-3 rounded-xl hover:bg-slate-50 flex items-center gap-3" onClick={() => setIsOpen(false)}>
                  <span className="w-5 h-5 text-blue-600" /> My Bookings
+              </Link>
+              <Link to="/profile" className="font-semibold px-4 py-3 rounded-xl hover:bg-slate-50 flex items-center gap-3" onClick={() => setIsOpen(false)}>
+                <User className="w-5 h-5" /> Profile
               </Link>
               <button onClick={() => { handleLogout(); setIsOpen(false); }} className="text-red-600 font-semibold px-4 py-3 rounded-xl hover:bg-red-50 flex items-center gap-3 text-left">
                 <LogOut className="w-5 h-5" /> Sign Out

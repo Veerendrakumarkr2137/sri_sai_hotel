@@ -13,6 +13,8 @@ const Home = lazy(() => import("./pages/Home"));
 const Rooms = lazy(() => import("./pages/Rooms"));
 const RoomDetails = lazy(() => import("./pages/RoomDetails"));
 const BookingPage = lazy(() => import("./pages/BookingPage"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Payment = lazy(() => import("./pages/Payment"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -71,6 +73,8 @@ export default function App() {
             
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/payment/:id" element={<Payment />} />
             <Route path="/my-bookings" element={<MyBookings />} />
           </Route>
 

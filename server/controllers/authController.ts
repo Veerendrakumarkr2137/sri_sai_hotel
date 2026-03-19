@@ -96,3 +96,95 @@ export const loginAdmin = async (req: Request, res: Response): Promise<any> => {
     return res.status(500).json({ success: false, error: "Server error" });
   }
 };
+
+export const getCurrentUser = async (req: any, res: Response): Promise<any> => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Invalid session" });
+    }
+
+    const user = await User.findById(userId).select("name email");
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    return res.json({
+      success: true,
+      user: { id: user._id.toString(), name: user.name, email: user.email },
+    });
+  } catch (error: any) {
+    console.error("Get profile error:", error?.message || error);
+    return res.status(500).json({ success: false, error: "Failed to load profile" });
+  }
+};
+
+export const updateProfile = async (req: any, res: Response): Promise<any> => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Invalid session" });
+    }
+
+    const { name, email } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ success: false, error: "Name and email are required" });
+    }
+
+    const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+    if (existingUser) {
+      return res.status(400).json({ success: false, error: "Email is already in use" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { name, email },
+      { new: true }
+    ).select("name email");
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    return res.json({
+      success: true,
+      user: { id: updatedUser._id.toString(), name: updatedUser.name, email: updatedUser.email },
+    });
+  } catch (error: any) {
+    console.error("Update profile error:", error?.message || error);
+    return res.status(500).json({ success: false, error: "Failed to update profile" });
+  }
+};
+
+export const changePassword = async (req: any, res: Response): Promise<any> => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Invalid session" });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, error: "Please provide both passwords" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, error: "Current password is incorrect" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    return res.json({ success: true, message: "Password updated successfully" });
+  } catch (error: any) {
+    console.error("Change password error:", error?.message || error);
+    return res.status(500).json({ success: false, error: "Failed to change password" });
+  }
+};
