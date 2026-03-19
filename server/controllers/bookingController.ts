@@ -479,3 +479,51 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
      return res.status(500).json({ success: false, error: "Failed to update" });
    }
 };
+
+export const cancelBooking = async (req: any, res: Response): Promise<any> => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ success: false, error: "Booking not found" });
+    }
+
+    // Verify the booking belongs to the logged-in user
+    if (booking.userId.toString() !== req.auth?.userId) {
+      return res.status(403).json({ success: false, error: "You can only cancel your own bookings" });
+    }
+
+    // Can only cancel confirmed bookings
+    if (booking.bookingStatus !== "confirmed" && booking.bookingStatus !== "pending_payment") {
+      return res.status(400).json({ success: false, error: "This booking cannot be cancelled" });
+    }
+
+    booking.bookingStatus = "cancelled";
+    await booking.save();
+
+    // Send cancellation email
+    const room = await Room.findById(booking.roomId);
+    const html = buildBookingEmailHTML({
+      name: booking.name,
+      bookingRef: booking.bookingRef,
+      roomTitle: room?.title || "Room",
+      checkInDate: booking.checkInDate,
+      checkOutDate: booking.checkOutDate,
+      guests: booking.guests,
+      totalPrice: booking.totalPrice,
+      headline: "Booking cancelled",
+      message: "Your booking has been successfully cancelled. If you have any questions, please contact us.",
+      extraInfo: "We hope to see you at Hotel Sai International soon!",
+    });
+
+    sendEmail({
+      to: booking.email,
+      subject: "Booking Cancelled - Hotel Sai International",
+      html,
+      text: `Your booking ${booking.bookingRef} has been cancelled.`,
+    });
+
+    return res.json({ success: true, booking });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: "Failed to cancel booking" });
+  }
+};

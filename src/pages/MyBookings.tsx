@@ -10,6 +10,7 @@ export default function MyBookings() {
   const { token } = useContext(AuthContext);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canceling, setCanceling] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -29,6 +30,29 @@ export default function MyBookings() {
 
     if (token) fetchBookings();
   }, [token]);
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+
+    setCanceling(bookingId);
+    try {
+      const { data } = await axios.put(
+        `${API_BASE_URL}/api/bookings/${bookingId}/cancel`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        setBookings(bookings.map(b => b._id === bookingId ? { ...b, bookingStatus: 'cancelled' } : b));
+        toast.success("Booking cancelled successfully");
+      } else {
+        toast.error(data.error || "Failed to cancel booking");
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to cancel booking");
+    } finally {
+      setCanceling(null);
+    }
+  };
 
   if (loading) return <div className="text-center py-20 text-xl font-medium">Loading your bookings...</div>;
 
@@ -98,8 +122,12 @@ export default function MyBookings() {
 
                 {booking.bookingStatus === 'confirmed' && (
                   <div className="pt-4 border-t border-slate-100 mt-2">
-                    <button className="text-red-500 hover:text-red-600 font-semibold text-sm transition-colors">
-                      Cancel Booking
+                    <button 
+                      onClick={() => handleCancelBooking(booking._id)}
+                      disabled={canceling === booking._id}
+                      className="text-red-500 hover:text-red-600 font-semibold text-sm transition-colors disabled:opacity-50"
+                    >
+                      {canceling === booking._id ? "Cancelling..." : "Cancel Booking"}
                     </button>
                     <p className="text-xs text-slate-400 mt-1">Free cancellation up to 48 hours before check-in.</p>
                   </div>

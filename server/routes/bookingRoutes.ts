@@ -7,6 +7,7 @@ import {
   getMyBookings,
   getBooking,
   confirmPayment,
+  cancelBooking,
   getAllBookings,
   deleteBooking,
   updateBookingStatus
@@ -22,6 +23,7 @@ router.post("/pay-at-hotel", requireAuth("user"), createPayAtHotelBooking);
 router.get("/my-bookings", requireAuth("user"), getMyBookings);
 router.get("/:id", requireAuth("user"), getBooking);
 router.post("/:id/confirm-payment", requireAuth("user"), confirmPayment);
+router.put("/:id/cancel", requireAuth("user"), cancelBooking);
 
 // Admin routes
 router.get("/admin/all", requireAuth("admin"), getAllBookings);
