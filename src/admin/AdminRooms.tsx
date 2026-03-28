@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { PlusCircle, Edit, Trash2, X } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
 import { motion, AnimatePresence } from "motion/react";
-import { hoverLift, revealSoft, revealUp, sectionStagger } from "../lib/animations";
+import { revealSoft, revealUp, sectionStagger } from "../lib/animations";
 
 const defaultFormState = {
   title: "",

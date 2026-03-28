@@ -29,7 +29,9 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<an
 
 export const getAllUsers = async (req: Request, res: Response): Promise<any> => {
   try {
-    const users = await User.find({}).select("-password");
+    const users = await User.find({})
+      .select("name email role createdAt")
+      .sort({ createdAt: -1 });
     return res.json({ success: true, users });
   } catch (error) {
     return res.status(500).json({ success: false, error: "Failed to fetch users" });

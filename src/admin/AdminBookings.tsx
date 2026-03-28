@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { Trash2, Copy } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
 import { motion } from "motion/react";
-import { hoverLift, revealSoft, revealUp, sectionStagger } from "../lib/animations";
+import { revealSoft, revealUp, sectionStagger } from "../lib/animations";
 
 export default function AdminBookings() {
   const { token } = useContext(AuthContext);
@@ -136,7 +136,7 @@ export default function AdminBookings() {
                   <div className="mt-1 font-medium text-slate-600">{booking.guests} Guests</div>
                 </td>
                 <td className="px-6 py-4">
-                  <motion.div whileHover={hoverLift}>
+                  <motion.div whileHover={{ y: -1 }}>
                     <select
                       value={booking.bookingStatus}
                       onChange={(e) => updateStatus(booking._id, e.target.value)}
