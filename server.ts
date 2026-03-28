@@ -6,11 +6,11 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 
-// Routes
 import authRoutes from "./server/routes/authRoutes";
 import roomRoutes from "./server/routes/roomRoutes";
 import bookingRoutes from "./server/routes/bookingRoutes";
 import adminRoutes from "./server/routes/adminRoutes";
+import paymentRoutes from "./server/routes/paymentRoutes";
 
 const dotenvResult = dotenv.config();
 console.log("Loaded .env:", dotenvResult);
@@ -23,7 +23,6 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://veerendra2137_db_u
 
 const app = express();
 
-// CORS configuration
 app.use(cors({
   origin: [
     "https://sri-sai-hotel.vercel.app",
@@ -38,13 +37,12 @@ app.use(cors({
 
 app.use(express.json());
 
-// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/payment", paymentRoutes);
 
-// Fallback error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ success: false, error: "Internal Server Error" });
@@ -58,7 +56,7 @@ mongoose
   })
   .catch((error) => {
     console.error("MongoDB connection error:", error);
-    startServer(); // Still start the server so frontend can be developed
+    startServer();
   });
 
 async function startServer() {

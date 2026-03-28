@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
@@ -9,7 +9,9 @@ export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const redirectTo = searchParams.get("redirect") || "/";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,7 +25,7 @@ export default function Login() {
       if (data.success) {
         login(data.token, data.user);
         toast.success("Login successful");
-        navigate("/");
+        navigate(redirectTo);
       }
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Login failed");
@@ -41,7 +43,7 @@ export default function Login() {
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600">
             Or{" "}
-            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+            <Link to={`/register${redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`} className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
               create a new account
             </Link>
           </p>

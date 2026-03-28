@@ -3,7 +3,7 @@ import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
-import { CalendarDays, Home, CreditCard } from "lucide-react";
+import { CalendarDays, Home, CheckCircle2 } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
 
 export default function MyBookings() {
@@ -122,6 +122,19 @@ export default function MyBookings() {
 
                 {booking.bookingStatus === 'confirmed' && (
                   <div className="pt-4 border-t border-slate-100 mt-2">
+                    <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Booking Confirmed
+                    </div>
+                    <div className="mb-3">
+                      <Link
+                        to={`/booking-confirmation/${booking._id}`}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        View confirmation
+                      </Link>
+                    </div>
                     <button 
                       onClick={() => handleCancelBooking(booking._id)}
                       disabled={canceling === booking._id}

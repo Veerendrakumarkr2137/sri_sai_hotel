@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
@@ -9,7 +9,9 @@ export default function Register() {
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const redirectTo = searchParams.get("redirect") || "/";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,7 +31,7 @@ export default function Register() {
         if (loginRes.data.success) {
           login(loginRes.data.token, loginRes.data.user);
           toast.success("Account created successfully");
-          navigate("/");
+          navigate(redirectTo);
         }
       }
     } catch (err: any) {
@@ -48,7 +50,7 @@ export default function Register() {
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600">
             Or{" "}
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+            <Link to={`/login${redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`} className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
               sign in to your existing account
             </Link>
           </p>

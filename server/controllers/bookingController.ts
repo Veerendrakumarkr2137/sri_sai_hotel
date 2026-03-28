@@ -58,6 +58,8 @@ function buildBookingEmailHTML({
   message,
   actionLabel,
   actionUrl,
+  secondaryActionLabel,
+  secondaryActionUrl,
   extraInfo,
 }: {
   name: string;
@@ -71,6 +73,8 @@ function buildBookingEmailHTML({
   message: string;
   actionLabel?: string;
   actionUrl?: string;
+  secondaryActionLabel?: string;
+  secondaryActionUrl?: string;
   extraInfo?: string;
 }) {
   const checkIn = formatDate(checkInDate);
@@ -127,9 +131,10 @@ function buildBookingEmailHTML({
                   </tr>
                 </table>
 
-                ${actionUrl ? `
+                ${(actionUrl || secondaryActionUrl) ? `
                   <div style="text-align:center;margin-bottom:24px;">
-                    <a href="${actionUrl}" style="display:inline-block;padding:12px 24px;background:#0b1b3d;color:#ffffff;border-radius:999px;text-decoration:none;font-weight:600;">${actionLabel || "View details"}</a>
+                    ${actionUrl ? `<a href="${actionUrl}" style="display:inline-block;padding:12px 24px;background:#0b1b3d;color:#ffffff;border-radius:999px;text-decoration:none;font-weight:600;margin:0 6px 12px;">${actionLabel || "View details"}</a>` : ""}
+                    ${secondaryActionUrl ? `<a href="${secondaryActionUrl}" style="display:inline-block;padding:12px 24px;background:#ffffff;color:#0b1b3d;border:1px solid #cbd5e1;border-radius:999px;text-decoration:none;font-weight:600;margin:0 6px 12px;">${secondaryActionLabel || "Open booking"}</a>` : ""}
                   </div>
                 ` : ""}
 
@@ -213,6 +218,7 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
 
     // Send email asynchronously without blocking the response
     const bookingUrl = `${FRONTEND_URL}/my-bookings`;
+    const payNowUrl = `${FRONTEND_URL}/payment/${booking._id}`;
     const html = buildBookingEmailHTML({
       name,
       bookingRef,
@@ -222,17 +228,19 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
       guests,
       totalPrice,
       headline: "Your booking is confirmed!",
-      message: "Thanks for booking with Hotel Sai International. Your reservation is confirmed and you can pay at the hotel upon arrival.",
-      actionLabel: "View my bookings",
-      actionUrl: bookingUrl,
-      extraInfo: "If you have any questions or need to modify your reservation, please reply to this email.",
+      message: "Thanks for booking with Hotel Sai International. Your reservation is confirmed and you can pay at the hotel upon arrival. If you want a faster check-in experience, you can also pay online before you arrive.",
+      actionLabel: "Pay now to save time",
+      actionUrl: payNowUrl,
+      secondaryActionLabel: "View my bookings",
+      secondaryActionUrl: bookingUrl,
+      extraInfo: "Paying now is optional. Your room is already confirmed, and you can still choose to pay at the hotel.",
     });
 
     sendEmail({
       to: email,
       subject: "Booking Confirmed - Hotel Sai International",
       html,
-      text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${totalPrice}. Please pay at the hotel upon arrival.`,
+      text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${totalPrice}. You can pay at the hotel upon arrival or pay now to save time here: ${payNowUrl}`,
     });
 
     return res.status(201).json({ success: true, booking });
