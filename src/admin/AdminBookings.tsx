@@ -7,6 +7,15 @@ import { API_BASE_URL } from "../lib/api";
 import { motion } from "motion/react";
 import { revealSoft, revealUp, sectionStagger } from "../lib/animations";
 
+function sortBookingsByNewest<T extends { createdAt?: string }>(items: T[]) {
+  return [...items].sort((left, right) => {
+    const leftTime = new Date(left.createdAt || 0).getTime();
+    const rightTime = new Date(right.createdAt || 0).getTime();
+
+    return rightTime - leftTime;
+  });
+}
+
 function getPaymentMethodLabel(paymentMethod: string) {
   if (paymentMethod === "manual_upi") {
     return "Direct UPI";
@@ -73,7 +82,7 @@ export default function AdminBookings() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (data.success) {
-        setBookings(data.bookings);
+        setBookings(sortBookingsByNewest(data.bookings));
       }
     } catch (err) {
       toast.error("Failed to load bookings");

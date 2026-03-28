@@ -504,7 +504,9 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
 
 export const getMyBookings = async (req: any, res: Response): Promise<any> => {
   try {
-    const bookings = await Booking.find({ userId: req.auth?.userId }).populate("roomId");
+    const bookings = await Booking.find({ userId: req.auth?.userId })
+      .sort({ createdAt: -1 })
+      .populate("roomId");
     return res.json({ success: true, bookings });
   } catch (error) {
     return res.status(500).json({ success: false, error: "Failed to fetch bookings" });

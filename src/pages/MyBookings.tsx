@@ -6,6 +6,15 @@ import { Link } from "react-router-dom";
 import { CalendarDays, Home, CheckCircle2 } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
 
+function sortBookingsByNewest<T extends { createdAt?: string }>(items: T[]) {
+  return [...items].sort((left, right) => {
+    const leftTime = new Date(left.createdAt || 0).getTime();
+    const rightTime = new Date(right.createdAt || 0).getTime();
+
+    return rightTime - leftTime;
+  });
+}
+
 function getPaymentStatusClasses(paymentStatus: string) {
   if (paymentStatus === "paid") {
     return "bg-emerald-100 text-emerald-700";
@@ -35,7 +44,7 @@ export default function MyBookings() {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (data.success) {
-          setBookings(data.bookings);
+          setBookings(sortBookingsByNewest(data.bookings));
         }
       } catch (err) {
         toast.error("Failed to load your bookings");
