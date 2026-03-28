@@ -1,7 +1,8 @@
 import { Suspense, lazy } from "react";
-import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { motion, AnimatePresence } from "motion/react";
 
 import { AuthProvider } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
@@ -31,13 +32,25 @@ const AdminBookings = lazy(() => import("./admin/AdminBookings"));
 const MyBookings = lazy(() => import("./pages/MyBookings"));
 
 function MainLayout() {
+  const location = useLocation();
+  
   return (
     <div className="flex flex-col min-h-screen font-sans bg-slate-50 text-slate-900">
       <Navbar />
-      <main className="flex-grow pt-[80px]">
-        <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center text-slate-600">Loading...</div>}>
-          <Outlet />
-        </Suspense>
+      <main className="flex-grow pt-[80px] overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center text-slate-600">Loading...</div>}>
+              <Outlet />
+            </Suspense>
+          </motion.div>
+        </AnimatePresence>
       </main>
       <Footer />
     </div>
@@ -45,13 +58,26 @@ function MainLayout() {
 }
 
 function AdminLayout() {
+  const location = useLocation();
+
   return (
     <div className="flex h-screen bg-slate-100 font-sans">
       <AdminSidebar />
       <main className="flex-1 overflow-auto p-8">
-        <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
-          <Outlet />
-        </Suspense>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="h-full"
+          >
+            <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
+              <Outlet />
+            </Suspense>
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );
