@@ -16,7 +16,7 @@ const itemVariants = {
 
 export default function Gallery() {
   const images = [
-    "https://images.unsplash.com/photo-1542314831-c6a4d1409e1c?auto=format&fit=crop&q=80",
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNUWfwWrTZY6kjF7RSI7wfVzs4BJ23SXGIDA&s",
     "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&q=80",
     "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&q=80",
     "https://images.unsplash.com/photo-1551882547-ff40c0d13c90?auto=format&fit=crop&q=80",

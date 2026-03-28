@@ -11,6 +11,7 @@ import roomRoutes from "./server/routes/roomRoutes";
 import bookingRoutes from "./server/routes/bookingRoutes";
 import adminRoutes from "./server/routes/adminRoutes";
 import paymentRoutes from "./server/routes/paymentRoutes";
+import { ensureDefaultRooms, syncRoomIndexes } from "./server/lib/ensureDefaultRooms";
 
 const dotenvResult = dotenv.config();
 console.log("Loaded .env:", dotenvResult);
@@ -50,8 +51,17 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 mongoose
   .connect(MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     console.log("Connected to MongoDB");
+    try {
+      await syncRoomIndexes();
+      const seeded = await ensureDefaultRooms();
+      if (seeded) {
+        console.log("Inserted default rooms because the collection was empty.");
+      }
+    } catch (seedError) {
+      console.error("Failed to synchronize room indexes or seed default rooms:", seedError);
+    }
     startServer();
   })
   .catch((error) => {

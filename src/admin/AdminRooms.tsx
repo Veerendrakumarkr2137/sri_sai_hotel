@@ -2,8 +2,20 @@ import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Edit, Trash2, X } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
+import { motion, AnimatePresence } from "motion/react";
+import { hoverLift, revealSoft, revealUp, sectionStagger } from "../lib/animations";
+
+const defaultFormState = {
+  title: "",
+  description: "",
+  price: "",
+  images: [""],
+  roomType: "Deluxe Room",
+  capacity: "2",
+  availableRooms: "1",
+};
 
 export default function AdminRooms() {
   const { token } = useContext(AuthContext);
@@ -11,15 +23,7 @@ export default function AdminRooms() {
   const [showModal, setShowModal] = useState(false);
   const [editingRoom, setEditingRoom] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    price: "",
-    images: [""],
-    roomType: "Deluxe Room",
-    capacity: "2",
-    availableRooms: "1"
-  });
+  const [formData, setFormData] = useState(defaultFormState);
 
   useEffect(() => {
     fetchRooms();
@@ -27,6 +31,11 @@ export default function AdminRooms() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const resetForm = () => {
+    setEditingRoom(null);
+    setFormData(defaultFormState);
   };
 
   const handleEdit = (room: any) => {
@@ -38,7 +47,7 @@ export default function AdminRooms() {
       images: room.images || [""],
       roomType: room.roomType,
       capacity: room.capacity.toString(),
-      availableRooms: room.availableRooms.toString()
+      availableRooms: room.availableRooms.toString(),
     });
     setShowModal(true);
   };
@@ -52,45 +61,29 @@ export default function AdminRooms() {
         price: Number(formData.price),
         capacity: Number(formData.capacity),
         availableRooms: Number(formData.availableRooms),
-        amenities: ["Free WiFi", "TV", "AC"] // Default amenities for simplicity via dashboard
+        amenities: ["Free WiFi", "TV", "AC"],
       };
-      
+
       if (editingRoom) {
         const { data } = await axios.put(`${API_BASE_URL}/api/rooms/${editingRoom._id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
+
         if (data.success) {
           toast.success("Room updated successfully");
-          setEditingRoom(null);
           setShowModal(false);
-          setFormData({
-            title: "",
-            description: "",
-            price: "",
-            images: [""],
-            roomType: "Deluxe Room",
-            capacity: "2",
-            availableRooms: "1"
-          });
+          resetForm();
           fetchRooms();
         }
       } else {
         const { data } = await axios.post(`${API_BASE_URL}/api/rooms`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
+
         if (data.success) {
           toast.success("Room added successfully");
           setShowModal(false);
-          setFormData({
-            title: "",
-            description: "",
-            price: "",
-            images: [""],
-            roomType: "Deluxe Room",
-            capacity: "2",
-            availableRooms: "1"
-          });
+          resetForm();
           fetchRooms();
         }
       }
@@ -116,7 +109,7 @@ export default function AdminRooms() {
     if (!window.confirm("Are you sure?")) return;
     try {
       await axios.delete(`${API_BASE_URL}/api/rooms/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Room deleted");
       fetchRooms();
@@ -126,121 +119,235 @@ export default function AdminRooms() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+    <motion.div initial="hidden" animate="visible" variants={sectionStagger} className="max-w-7xl mx-auto">
+      <motion.div variants={revealUp} className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-slate-900">Manage Rooms</h1>
-        <button onClick={() => setShowModal(true)} className="bg-slate-900 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-lg font-semibold">
+        <motion.button
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => {
+            resetForm();
+            setShowModal(true);
+          }}
+          className="flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white shadow-lg transition-colors hover:bg-slate-800"
+        >
           <PlusCircle className="w-5 h-5" /> Add New Room
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <motion.div
+        variants={revealSoft}
+        className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm"
+      >
         <table className="w-full text-left">
-          <thead className="bg-slate-50 border-b border-slate-100 text-slate-600">
+          <thead className="border-b border-slate-100 bg-slate-50 text-slate-600">
             <tr>
               <th className="px-6 py-4 font-semibold">Room Info</th>
               <th className="px-6 py-4 font-semibold">Type</th>
               <th className="px-6 py-4 font-semibold">Capacity</th>
               <th className="px-6 py-4 font-semibold">Price/Night</th>
-              <th className="px-6 py-4 font-semibold text-right">Actions</th>
+              <th className="px-6 py-4 text-right font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
-            {rooms.map((room) => (
-              <tr key={room._id} className="hover:bg-slate-50 transition-colors">
+            {rooms.map((room, index) => (
+              <motion.tr
+                key={room._id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, delay: index * 0.03 }}
+                className="transition-colors hover:bg-slate-50"
+              >
                 <td className="px-6 py-4">
-                  <div className="font-semibold text-slate-900 text-base">{room.title}</div>
-                  <div className="text-slate-500 line-clamp-1 max-w-xs">{room.description}</div>
+                  <div className="text-base font-semibold text-slate-900">{room.title}</div>
+                  <div className="max-w-xs line-clamp-1 text-slate-500">{room.description}</div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium text-xs uppercase tracking-wider">
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium uppercase tracking-wider text-blue-600">
                     {room.roomType}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-slate-600">{room.capacity} Guests</td>
-                <td className="px-6 py-4 font-bold text-slate-900">₹{room.price.toLocaleString("en-IN")}</td>
+                <td className="px-6 py-4 font-bold text-slate-900">Rs. {room.price.toLocaleString("en-IN")}</td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-3">
-                    <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-800 transition-colors p-2 bg-blue-50 rounded-lg">
+                    <motion.button
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleEdit(room)}
+                      className="rounded-lg bg-blue-50 p-2 text-blue-600 transition-colors hover:text-blue-800"
+                    >
                       <Edit className="w-5 h-5" />
-                    </button>
-                    <button onClick={() => deleteRoom(room._id)} className="text-red-600 hover:text-red-800 transition-colors p-2 bg-red-50 rounded-lg">
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => deleteRoom(room._id)}
+                      className="rounded-lg bg-red-50 p-2 text-red-600 transition-colors hover:text-red-800"
+                    >
                       <Trash2 className="w-5 h-5" />
-                    </button>
+                    </motion.button>
                   </div>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
           </tbody>
         </table>
+
         {rooms.length === 0 && (
-          <div className="text-center py-12 text-slate-500 text-lg">
+          <motion.div variants={revealSoft} className="py-12 text-center text-lg text-slate-500">
             No rooms available yet. Add some rooms to get started.
-          </div>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">{editingRoom ? "Edit Room" : "Add New Room"}</h2>
-              <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-slate-900 text-xl font-bold">×</button>
-            </div>
-            
-            <form onSubmit={handleAddRoom} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Title</label>
-                  <input required name="title" value={formData.title} onChange={handleChange} className="w-full border rounded-lg p-2" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Room Type</label>
-                  <select required name="roomType" value={formData.roomType} onChange={handleChange} className="w-full border rounded-lg p-2">
-                    <option value="Deluxe Room">Deluxe Room</option>
-                    <option value="Executive Room">Executive Room</option>
-                    <option value="Family Suite">Family Suite</option>
-                  </select>
-                </div>
+      <AnimatePresence>
+        {showModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              transition={{ duration: 0.22 }}
+              className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
+            >
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-2xl font-bold">{editingRoom ? "Edit Room" : "Add New Room"}</h2>
+                <motion.button
+                  whileHover={{ rotate: 90 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setShowModal(false);
+                    resetForm();
+                  }}
+                  className="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                >
+                  <X className="h-5 w-5" />
+                </motion.button>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <textarea required name="description" value={formData.description} onChange={handleChange} className="w-full border rounded-lg p-2" rows={3} />
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Price</label>
-                  <input required type="number" name="price" value={formData.price} onChange={handleChange} className="w-full border rounded-lg p-2" />
+              <form onSubmit={handleAddRoom} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Title</label>
+                    <input
+                      required
+                      name="title"
+                      value={formData.title}
+                      onChange={handleChange}
+                      className="w-full rounded-lg border p-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Room Type</label>
+                    <select
+                      required
+                      name="roomType"
+                      value={formData.roomType}
+                      onChange={handleChange}
+                      className="w-full rounded-lg border p-2"
+                    >
+                      <option value="Deluxe Room">Deluxe Room</option>
+                      <option value="Executive Room">Executive Room</option>
+                      <option value="Family Suite">Family Suite</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Capacity</label>
-                  <input required type="number" name="capacity" value={formData.capacity} onChange={handleChange} className="w-full border rounded-lg p-2" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Available Rooms</label>
-                  <input required type="number" name="availableRooms" value={formData.availableRooms} onChange={handleChange} className="w-full border rounded-lg p-2" />
-                </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Image Network URL (Primary)</label>
-                <input required type="text" name="images" value={formData.images} onChange={(e) => setFormData({ ...formData, images: [e.target.value] })} placeholder="https://..." className="w-full border rounded-lg p-2" />
-              </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Description</label>
+                  <textarea
+                    required
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border p-2"
+                    rows={3}
+                  />
+                </div>
 
-              <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => { setShowModal(false); setEditingRoom(null); setFormData({ title: "", description: "", price: "", images: [""], roomType: "Deluxe Room", capacity: "2", availableRooms: "1" }); }} className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">
-                  Cancel
-                </button>
-                <button type="submit" disabled={loading} className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50">
-                  {loading ? "Saving..." : editingRoom ? "Update Room" : "Save Room"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Price</label>
+                    <input
+                      required
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleChange}
+                      className="w-full rounded-lg border p-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Capacity</label>
+                    <input
+                      required
+                      type="number"
+                      name="capacity"
+                      value={formData.capacity}
+                      onChange={handleChange}
+                      className="w-full rounded-lg border p-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Available Rooms</label>
+                    <input
+                      required
+                      type="number"
+                      name="availableRooms"
+                      value={formData.availableRooms}
+                      onChange={handleChange}
+                      className="w-full rounded-lg border p-2"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Image Network URL (Primary)</label>
+                  <input
+                    required
+                    type="text"
+                    name="images"
+                    value={formData.images[0] || ""}
+                    onChange={(e) => setFormData({ ...formData, images: [e.target.value] })}
+                    placeholder="https://..."
+                    className="w-full rounded-lg border p-2"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <motion.button
+                    type="button"
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setShowModal(false);
+                      resetForm();
+                    }}
+                    className="rounded-lg bg-slate-100 px-4 py-2 text-slate-600 hover:bg-slate-200"
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    type="submit"
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={loading}
+                    className="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    {loading ? "Saving..." : editingRoom ? "Update Room" : "Save Room"}
+                  </motion.button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

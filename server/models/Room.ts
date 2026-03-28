@@ -5,7 +5,7 @@ const roomSchema = new mongoose.Schema({
   description: { type: String, required: true },
   price: { type: Number, required: true },
   images: [{ type: String }],
-  roomType: { type: String, required: true, unique: true },
+  roomType: { type: String, required: true },
   capacity: { type: Number, required: true },
   amenities: [{ type: String }],
   availableRooms: { type: Number, required: true },

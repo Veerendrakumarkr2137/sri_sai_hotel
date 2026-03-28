@@ -8,6 +8,7 @@ import { AuthProvider } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import AdminSidebar from "./admin/AdminSidebar";
+import { pageReveal, pageSlide } from "./lib/animations";
 
 // Lazy loading pages
 const Home = lazy(() => import("./pages/Home"));
@@ -31,22 +32,45 @@ const AdminBookings = lazy(() => import("./admin/AdminBookings"));
 // User Pages
 const MyBookings = lazy(() => import("./pages/MyBookings"));
 
+function PageLoader({ fullHeight = false }: { fullHeight?: boolean }) {
+  return (
+    <div className={`flex items-center justify-center ${fullHeight ? "h-full min-h-[40vh]" : "min-h-[50vh]"}`}>
+      <div className="flex flex-col items-center gap-4 rounded-[2rem] border border-white/70 bg-white/80 px-8 py-6 shadow-xl shadow-slate-200/70 backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          {[0, 1, 2].map((dot) => (
+            <motion.span
+              key={dot}
+              animate={{ y: [0, -10, 0], opacity: [0.45, 1, 0.45], scale: [1, 1.08, 1] }}
+              transition={{
+                duration: 1.1,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: dot * 0.12,
+              }}
+              className="h-3 w-3 rounded-full bg-blue-600/80"
+            />
+          ))}
+        </div>
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Loading</p>
+      </div>
+    </div>
+  );
+}
+
 function MainLayout() {
   const location = useLocation();
   
   return (
     <div className="flex flex-col min-h-screen font-sans bg-slate-50 text-slate-900">
       <Navbar />
-      <main className="flex-grow pt-[80px] overflow-hidden">
-        <AnimatePresence mode="wait">
+      <main className="relative flex-grow overflow-hidden pt-[80px]">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
+            key={`${location.pathname}${location.search}`}
+            {...pageReveal}
+            className="min-h-full"
           >
-            <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center text-slate-600">Loading...</div>}>
+            <Suspense fallback={<PageLoader />}>
               <Outlet />
             </Suspense>
           </motion.div>
@@ -64,16 +88,13 @@ function AdminLayout() {
     <div className="flex h-screen bg-slate-100 font-sans">
       <AdminSidebar />
       <main className="flex-1 overflow-auto p-8">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
+            key={`${location.pathname}${location.search}`}
+            {...pageSlide}
             className="h-full"
           >
-            <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
+            <Suspense fallback={<PageLoader fullHeight />}>
               <Outlet />
             </Suspense>
           </motion.div>

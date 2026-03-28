@@ -2,9 +2,10 @@ import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
-import { Trash2, CheckCircle2, Copy } from "lucide-react";
+import { Trash2, Copy } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
-
+import { motion } from "motion/react";
+import { hoverLift, revealSoft, revealUp, sectionStagger } from "../lib/animations";
 
 export default function AdminBookings() {
   const { token } = useContext(AuthContext);
@@ -17,7 +18,6 @@ export default function AdminBookings() {
   }, []);
 
   useEffect(() => {
-    // Filter bookings based on search query
     if (!searchQuery.trim()) {
       setFilteredBookings(bookings);
     } else {
@@ -35,7 +35,7 @@ export default function AdminBookings() {
   const fetchBookings = async () => {
     try {
       const { data } = await axios.get(`${API_BASE_URL}/api/bookings/admin/all`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (data.success) {
         setBookings(data.bookings);
@@ -49,7 +49,7 @@ export default function AdminBookings() {
     if (!window.confirm("Are you sure?")) return;
     try {
       await axios.delete(`${API_BASE_URL}/api/bookings/admin/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Booking deleted");
       fetchBookings();
@@ -60,9 +60,13 @@ export default function AdminBookings() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await axios.put(`${API_BASE_URL}/api/bookings/admin/${id}/status`, { status }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.put(
+        `${API_BASE_URL}/api/bookings/admin/${id}/status`,
+        { status },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       toast.success(`Booking ${status}`);
       fetchBookings();
     } catch (err) {
@@ -71,92 +75,122 @@ export default function AdminBookings() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold text-slate-900 mb-8">Manage Bookings</h1>
+    <motion.div initial="hidden" animate="visible" variants={sectionStagger} className="max-w-7xl mx-auto">
+      <motion.h1 variants={revealUp} className="mb-8 text-3xl font-bold text-slate-900">
+        Manage Bookings
+      </motion.h1>
 
-      <div className="mb-6">
+      <motion.div variants={revealSoft} className="mb-6">
         <input
           type="text"
           placeholder="Search by booking ID, name, email, or phone..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
+          className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition-all focus:border-slate-900 focus:ring-2 focus:ring-slate-900"
         />
         {searchQuery && (
-          <p className="text-sm text-slate-500 mt-2">Found {filteredBookings.length} booking(s)</p>
+          <p className="mt-2 text-sm text-slate-500">Found {filteredBookings.length} booking(s)</p>
         )}
-      </div>
+      </motion.div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <motion.div
+        variants={revealSoft}
+        className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm"
+      >
         <table className="w-full text-left">
-          <thead className="bg-slate-50 border-b border-slate-100 text-slate-600">
+          <thead className="border-b border-slate-100 bg-slate-50 text-slate-600">
             <tr>
               <th className="px-6 py-4 font-semibold">Ref / Room</th>
               <th className="px-6 py-4 font-semibold">Guest Name</th>
               <th className="px-6 py-4 font-semibold">Dates</th>
               <th className="px-6 py-4 font-semibold">Status</th>
-              <th className="px-6 py-4 font-semibold text-right">Actions</th>
+              <th className="px-6 py-4 text-right font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
-            {filteredBookings.map((booking) => (
-              <tr key={booking._id} className="hover:bg-slate-50 transition-colors">
+            {filteredBookings.map((booking, index) => (
+              <motion.tr
+                key={booking._id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, delay: index * 0.03 }}
+                className="transition-colors hover:bg-slate-50"
+              >
                 <td className="px-6 py-4">
-                  <div className="font-semibold text-slate-900 flex items-center gap-2">
+                  <div className="flex items-center gap-2 font-semibold text-slate-900">
                     {booking.bookingRef}
-                    <button className="text-slate-400 hover:text-slate-600">
+                    <button className="text-slate-400 transition-colors hover:text-slate-600">
                       <Copy className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="text-slate-500 font-medium">
-                    {booking.roomId?.title || "Unknown Room"}
-                  </div>
+                  <div className="font-medium text-slate-500">{booking.roomId?.title || "Unknown Room"}</div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-slate-900 font-medium">{booking.name}</div>
+                  <div className="font-medium text-slate-900">{booking.name}</div>
                   <div className="text-slate-500">{booking.email}</div>
                   <div className="text-slate-500">{booking.phone}</div>
                 </td>
                 <td className="px-6 py-4">
                   <div className="text-slate-900">In: {new Date(booking.checkInDate).toLocaleDateString()}</div>
                   <div className="text-slate-500">Out: {new Date(booking.checkOutDate).toLocaleDateString()}</div>
-                  <div className="text-slate-600 font-medium mt-1">{booking.guests} Guests</div>
+                  <div className="mt-1 font-medium text-slate-600">{booking.guests} Guests</div>
                 </td>
                 <td className="px-6 py-4">
-                  <select
-                    value={booking.bookingStatus}
-                    onChange={(e) => updateStatus(booking._id, e.target.value)}
-                    className={`block w-full text-sm font-semibold rounded-lg border-slate-200 focus:ring-slate-900 focus:border-slate-900 cursor-pointer ${
-                      booking.bookingStatus === 'confirmed' ? "text-emerald-600 bg-emerald-50" :
-                      booking.bookingStatus === 'pending_payment' ? "text-orange-600 bg-orange-50" :
-                      booking.bookingStatus === 'pending' ? "text-amber-600 bg-amber-50" :
-                      "text-slate-600 bg-slate-50"
-                    } p-2 px-3 border border-transparent outline-none`}
-                  >
-                    <option value="pending" className="text-slate-900">Pending</option>
-                    <option value="pending_payment" className="text-slate-900">Pending Payment</option>
-                    <option value="confirmed" className="text-slate-900">Confirmed</option>
-                    <option value="cancelled" className="text-slate-900">Cancelled</option>
-                    <option value="completed" className="text-slate-900">Completed</option>
-                  </select>
+                  <motion.div whileHover={hoverLift}>
+                    <select
+                      value={booking.bookingStatus}
+                      onChange={(e) => updateStatus(booking._id, e.target.value)}
+                      className={`block w-full cursor-pointer rounded-lg border border-transparent p-2 px-3 text-sm font-semibold outline-none focus:border-slate-900 focus:ring-slate-900 ${
+                        booking.bookingStatus === "confirmed"
+                          ? "bg-emerald-50 text-emerald-600"
+                          : booking.bookingStatus === "pending_payment"
+                            ? "bg-orange-50 text-orange-600"
+                            : booking.bookingStatus === "pending"
+                              ? "bg-amber-50 text-amber-600"
+                              : "bg-slate-50 text-slate-600"
+                      }`}
+                    >
+                      <option value="pending" className="text-slate-900">
+                        Pending
+                      </option>
+                      <option value="pending_payment" className="text-slate-900">
+                        Pending Payment
+                      </option>
+                      <option value="confirmed" className="text-slate-900">
+                        Confirmed
+                      </option>
+                      <option value="cancelled" className="text-slate-900">
+                        Cancelled
+                      </option>
+                      <option value="completed" className="text-slate-900">
+                        Completed
+                      </option>
+                    </select>
+                  </motion.div>
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-3">
-                    <button onClick={() => deleteBooking(booking._id)} className="text-red-600 hover:text-red-800 transition-colors p-2 bg-red-50 rounded-lg">
+                    <motion.button
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => deleteBooking(booking._id)}
+                      className="rounded-lg bg-red-50 p-2 text-red-600 transition-colors hover:text-red-800"
+                    >
                       <Trash2 className="w-5 h-5" />
-                    </button>
+                    </motion.button>
                   </div>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
           </tbody>
         </table>
+
         {filteredBookings.length === 0 && (
-          <div className="text-center py-12 text-slate-500 text-lg">
+          <motion.div variants={revealSoft} className="py-12 text-center text-lg text-slate-500">
             {searchQuery ? "No bookings match your search." : "No bookings found."}
-          </div>
+          </motion.div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
