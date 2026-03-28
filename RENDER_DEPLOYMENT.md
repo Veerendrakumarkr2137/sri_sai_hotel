@@ -46,6 +46,12 @@ NODE_ENV=production
 JWT_SECRET=your-secret-key-here
 EMAIL_USER=tagmail469@gmail.com
 EMAIL_PASS=tcpasdyqkmjpmneb
+HOTEL_UPI_ID=8792629439@okaxis
+HOTEL_UPI_NAME=Hotel Sai International
+HOTEL_CONTACT_EMAIL=info@hotelsaiinternational.com
+HOTEL_SUPPORT_PHONE=+91 84949 26382
+HOTEL_WHATSAPP_NUMBER=918494926382
+FRONTEND_URL=https://sri-sai-hotel.vercel.app
 ```
 
 ### 4. Get Your Render Backend URL
@@ -62,7 +68,14 @@ Update `src/lib/api.ts` with your actual Render URL:
 return "https://sri-sai-hotel-backend.onrender.com";
 ```
 
-### 6. Deploy Frontend Changes
+### 6. Add Vercel Frontend Environment Variable
+In your Vercel project settings, add:
+
+```bash
+VITE_API_BASE_URL=https://sri-sai-hotel-backend.onrender.com
+```
+
+### 7. Deploy Frontend Changes
 Push to GitHub:
 ```bash
 git add -A
@@ -74,14 +87,16 @@ Vercel will auto-deploy the frontend.
 
 ## Testing:
 1. Wait for Render deployment to complete (first deploy takes 2-3 minutes)
-2. Visit your Vercel frontend: https://sri-sai-hotel.vercel.app/login
-3. Try to login
-4. Check Render logs if any issues
+2. Make sure the new environment variables are saved on Render and Vercel
+3. Visit your Vercel frontend: https://sri-sai-hotel.vercel.app/login
+4. Try to login and open the booking page
+5. Check Render logs if any issues
 
 ## Troubleshooting:
 - **MongoDB connection error:** Verify MONGODB_URI in Render env vars
 - **404 Not Found:** Backend URL in api.ts might be wrong
 - **CORS error:** Check if frontend URL is whitelisted
+- **UPI option not showing:** Make sure `HOTEL_UPI_ID` is set on the deployed backend and redeploy/restart Render
 - Check logs in Render dashboard for detailed errors
 
 ## Important Notes:

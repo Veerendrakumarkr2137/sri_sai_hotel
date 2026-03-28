@@ -24,6 +24,18 @@ services:
         sync: false
       - key: EMAIL_PASS
         sync: false
+      - key: HOTEL_UPI_ID
+        sync: false
+      - key: HOTEL_UPI_NAME
+        sync: false
+      - key: HOTEL_CONTACT_EMAIL
+        sync: false
+      - key: HOTEL_SUPPORT_PHONE
+        sync: false
+      - key: HOTEL_WHATSAPP_NUMBER
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
 
 databases:
   - name: mongodb
