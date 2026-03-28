@@ -10,7 +10,8 @@ import {
   cancelBooking,
   getAllBookings,
   deleteBooking,
-  updateBookingStatus
+  updateBookingStatus,
+  verifyManualUpiPayment,
 } from "../controllers/bookingController";
 import { requireAuth } from "../middleware/authMiddleware";
 
@@ -29,5 +30,6 @@ router.put("/:id/cancel", requireAuth("user"), cancelBooking);
 router.get("/admin/all", requireAuth("admin"), getAllBookings);
 router.delete("/admin/:id", requireAuth("admin"), deleteBooking);
 router.put("/admin/:id/status", requireAuth("admin"), updateBookingStatus);
+router.put("/admin/:id/verify-manual-payment", requireAuth("admin"), verifyManualUpiPayment);
 
 export default router;

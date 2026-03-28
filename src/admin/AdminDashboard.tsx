@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useContext } from "react";
-import { Link } from "react-router-dom";
+import React, { useContext, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { Users, Building, ClipboardList, IndianRupee, ShieldCheck } from "lucide-react";
@@ -12,6 +12,8 @@ type DashboardStats = {
   totalBookings: number;
   totalRooms: number;
   totalUsers: number;
+  adminCount: number;
+  guestCount: number;
 };
 
 type AdminUser = {
@@ -23,38 +25,45 @@ type AdminUser = {
 };
 
 export default function AdminDashboard() {
-  const { token } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const { token, isLoading } = useContext(AuthContext);
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [recentUsers, setRecentUsers] = useState<AdminUser[]>([]);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [statsResponse, usersResponse] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/admin/stats`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${API_BASE_URL}/api/admin/users`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+        setLoadError("");
+        const { data } = await axios.get(`${API_BASE_URL}/api/admin/stats`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-        if (statsResponse.data.success) {
-          setStats(statsResponse.data.stats);
+        if (data.success) {
+          setStats(data.stats);
+          setRecentUsers(data.recentUsers || []);
+        } else {
+          setLoadError("Failed to load dashboard data.");
         }
-
-        if (usersResponse.data.success) {
-          setUsers(usersResponse.data.users);
-        }
-      } catch (err) {
-        console.error("Failed to fetch dashboard data", err);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data", error);
+        setLoadError("Failed to load dashboard data. Please try signing in again.");
       }
     };
 
-    if (token) fetchDashboardData();
-  }, [token]);
+    if (isLoading) {
+      return;
+    }
 
-  if (!stats) {
+    if (!token) {
+      navigate("/admin", { replace: true });
+      return;
+    }
+
+    fetchDashboardData();
+  }, [isLoading, navigate, token]);
+
+  if (isLoading || (!stats && !loadError)) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <motion.div
@@ -68,9 +77,15 @@ export default function AdminDashboard() {
     );
   }
 
-  const adminCount = users.filter((user) => user.role === "admin").length;
-  const guestCount = users.length - adminCount;
-  const recentUsers = users.slice(0, 3);
+  if (!stats) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-5 text-sm font-medium text-red-700 shadow-sm">
+          {loadError}
+        </div>
+      </div>
+    );
+  }
 
   const statCards = [
     {
@@ -152,16 +167,16 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-slate-900">User Overview</h3>
                 <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-purple-700">
-                  {users.length} total
+                  {stats.totalUsers} total
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
                 <span className="rounded-full bg-white/80 px-2.5 py-1">
-                  {guestCount} guest{guestCount === 1 ? "" : "s"}
+                  {stats.guestCount} guest{stats.guestCount === 1 ? "" : "s"}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1">
                   <ShieldCheck className="h-3.5 w-3.5 text-purple-600" />
-                  {adminCount} admin{adminCount === 1 ? "" : "s"}
+                  {stats.adminCount} admin{stats.adminCount === 1 ? "" : "s"}
                 </span>
               </div>
               <div className="mt-3 space-y-1.5">
@@ -169,7 +184,7 @@ export default function AdminDashboard() {
                   recentUsers.map((user) => (
                     <div key={user._id} className="truncate text-sm text-slate-600">
                       <span className="font-medium text-slate-900">{user.name}</span>
-                      {" • "}
+                      {" - "}
                       <span className="truncate">{user.email}</span>
                     </div>
                   ))

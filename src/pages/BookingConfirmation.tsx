@@ -4,8 +4,17 @@ import { toast } from "react-toastify";
 import { CalendarDays, CheckCircle2, Clock3, CreditCard, Home, XCircle } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
 import { createAuthHeaders, getUserToken } from "../lib/auth";
+import { buildPaymentConfirmationEmailLink, buildWhatsAppLink } from "../lib/paymentContact";
 
-type ConfirmationState = "loading" | "success" | "failed" | "pending";
+type ConfirmationState = "loading" | "success" | "failed" | "pending" | "submitted";
+
+type PaymentConfig = {
+  phonePeEnabled: boolean;
+  payAtHotelEnabled: boolean;
+  supportEmail?: string;
+  supportPhone?: string;
+  whatsAppNumber?: string;
+};
 
 function getConfirmationState(booking: any, transactionId: string): ConfirmationState {
   if (!booking) {
@@ -14,6 +23,10 @@ function getConfirmationState(booking: any, transactionId: string): Confirmation
 
   if (booking.paymentMethod === "pay_at_hotel" || booking.paymentStatus === "paid") {
     return "success";
+  }
+
+  if (booking.paymentMethod === "manual_upi" && booking.paymentStatus === "submitted") {
+    return "submitted";
   }
 
   if (booking.paymentMethod === "PhonePe" && transactionId) {
@@ -38,7 +51,12 @@ export default function BookingConfirmationPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isSubmittingManualPayment, setIsSubmittingManualPayment] = useState(false);
   const [error, setError] = useState("");
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>({
+    phonePeEnabled: false,
+    payAtHotelEnabled: true,
+  });
   const loginRedirect = typeof window !== "undefined"
     ? `/login?redirect=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`
     : "/login";
@@ -46,6 +64,34 @@ export default function BookingConfirmationPage() {
     () => getConfirmationState(booking, transactionIdFromUrl || booking?.transactionId || ""),
     [booking, transactionIdFromUrl],
   );
+  const supportEmail = booking?.supportEmail || paymentConfig.supportEmail || "";
+  const supportPhone = booking?.supportPhone || paymentConfig.supportPhone || "";
+  const whatsAppNumber = booking?.whatsAppNumber || paymentConfig.whatsAppNumber || "";
+  const whatsAppLink = useMemo(
+    () => (booking?.paymentMethod === "manual_upi" ? buildWhatsAppLink(whatsAppNumber, booking) : ""),
+    [booking, whatsAppNumber],
+  );
+  const emailLink = useMemo(
+    () => (booking?.paymentMethod === "manual_upi" ? buildPaymentConfirmationEmailLink(supportEmail, booking) : ""),
+    [booking, supportEmail],
+  );
+
+  useEffect(() => {
+    const fetchPaymentConfig = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/payment/config`);
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          setPaymentConfig(data.payment);
+        }
+      } catch {
+        // Keep safe defaults if config is unavailable.
+      }
+    };
+
+    fetchPaymentConfig();
+  }, []);
 
   const verifyPhonePeStatus = async (transactionId: string, showToast = false) => {
     const token = getUserToken();
@@ -175,6 +221,45 @@ export default function BookingConfirmationPage() {
     }
   };
 
+  const handleSubmitManualPayment = async () => {
+    const token = getUserToken();
+
+    if (!token || !booking?._id) {
+      navigate(loginRedirect, { replace: true });
+      return;
+    }
+
+    setIsSubmittingManualPayment(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/${booking._id}/confirm-payment`, {
+        method: "POST",
+        headers: createAuthHeaders(token),
+      });
+      const data = await response.json();
+
+      if (response.status === 401 || response.status === 403) {
+        if (!response.ok) {
+          toast.error(data.error || "Please sign in again.");
+        }
+        navigate(loginRedirect, { replace: true });
+        return;
+      }
+
+      if (!response.ok || !data.success) {
+        toast.error(data.error || "Unable to submit payment right now.");
+        return;
+      }
+
+      setBooking(data.booking);
+      toast.success(data.message || "Payment submitted successfully.");
+    } catch {
+      toast.error("Unable to submit payment right now.");
+    } finally {
+      setIsSubmittingManualPayment(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -199,6 +284,8 @@ export default function BookingConfirmationPage() {
   const paymentStatusLabel = booking.paymentMethod === "pay_at_hotel" ? "Pay on arrival" : booking.paymentStatus;
   const confirmationBadge = confirmationState === "success"
     ? "Confirmed"
+    : confirmationState === "submitted"
+      ? "Submitted"
     : confirmationState === "failed"
       ? "Failed"
       : "Pending";
@@ -247,6 +334,16 @@ export default function BookingConfirmationPage() {
                         {booking.paymentMethod === "pay_at_hotel"
                           ? "Your reservation is confirmed. You can pay at the hotel during check-in."
                           : "Your payment has been verified and your booking is confirmed."}
+                      </p>
+                    </div>
+                  </div>
+                ) : confirmationState === "submitted" ? (
+                  <div className="flex items-start gap-4">
+                    <Clock3 className="mt-0.5 h-8 w-8 text-sky-600" />
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900">Payment submitted for review</h2>
+                      <p className="mt-2 text-sm text-slate-600">
+                        Your manual UPI payment has been submitted. Hotel staff will verify it and confirm the booking soon.
                       </p>
                     </div>
                   </div>
@@ -328,7 +425,13 @@ export default function BookingConfirmationPage() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Payment status</span>
                     <span className={`font-semibold ${
-                      confirmationState === "success" ? "text-emerald-700" : confirmationState === "failed" ? "text-red-700" : "text-amber-700"
+                      confirmationState === "success"
+                        ? "text-emerald-700"
+                        : confirmationState === "submitted"
+                          ? "text-sky-700"
+                          : confirmationState === "failed"
+                            ? "text-red-700"
+                            : "text-amber-700"
                     }`}>
                       {paymentStatusLabel}
                     </span>
@@ -369,7 +472,7 @@ export default function BookingConfirmationPage() {
                     </button>
                   )}
 
-                  {booking.paymentMethod === "PhonePe" && confirmationState !== "success" && (
+                  {booking.paymentMethod === "PhonePe" && confirmationState !== "success" && paymentConfig.phonePeEnabled && (
                     <button
                       onClick={handleRetryPhonePe}
                       disabled={isRetrying}
@@ -384,7 +487,7 @@ export default function BookingConfirmationPage() {
                     </button>
                   )}
 
-                  {booking.paymentMethod === "pay_at_hotel" && booking.paymentStatus !== "paid" && (
+                  {booking.paymentMethod === "pay_at_hotel" && booking.paymentStatus !== "paid" && paymentConfig.phonePeEnabled && (
                     <button
                       onClick={() => navigate(`/payment/${booking._id}`)}
                       className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white hover:bg-slate-800"
@@ -395,13 +498,62 @@ export default function BookingConfirmationPage() {
                   )}
 
                   {booking.paymentMethod === "manual_upi" && (
-                    <button
-                      onClick={() => navigate(`/payment/${booking._id}`)}
-                      className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white hover:bg-slate-800"
-                    >
-                      <CreditCard className="h-4 w-4" />
-                      Go to payment page
-                    </button>
+                    <>
+                      <div
+                        className={`rounded-xl px-4 py-3 text-sm ${
+                          confirmationState === "submitted"
+                            ? "border border-sky-200 bg-sky-50 text-sky-800"
+                            : "border border-amber-200 bg-amber-50 text-amber-800"
+                        }`}
+                      >
+                        {confirmationState === "submitted"
+                          ? "Your payment has been submitted for review. You can return to your bookings while the hotel verifies it."
+                          : "Manual UPI payments are verified by hotel staff. Send your booking reference and payment proof on WhatsApp or email after payment."}
+                      </div>
+
+                      {whatsAppLink && (
+                        <a
+                          href={whatsAppLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700"
+                        >
+                          Confirm on WhatsApp
+                        </a>
+                      )}
+
+                      {emailLink && (
+                        <a
+                          href={emailLink}
+                          className="flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white hover:bg-slate-800"
+                        >
+                          Confirm by Email
+                        </a>
+                      )}
+
+                      {confirmationState !== "submitted" && (
+                        <button
+                          onClick={handleSubmitManualPayment}
+                          disabled={isSubmittingManualPayment}
+                          className="flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-70"
+                        >
+                          {isSubmittingManualPayment ? "Submitting..." : "Payment Submitted"}
+                        </button>
+                      )}
+
+                      {(supportPhone || supportEmail) && (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                          {supportPhone && <p>WhatsApp: {supportPhone}</p>}
+                          {supportEmail && <p>Email: {supportEmail}</p>}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {!paymentConfig.phonePeEnabled && booking.paymentMethod !== "manual_upi" && confirmationState !== "success" && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                      Online PhonePe payments are unavailable right now.
+                    </div>
                   )}
 
                   <Link

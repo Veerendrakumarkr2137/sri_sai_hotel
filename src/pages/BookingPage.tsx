@@ -5,15 +5,40 @@ import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
 import { API_BASE_URL } from "../lib/api";
 
-type PaymentMethod = "phonepe" | "pay_at_hotel";
+type PaymentMethod = "phonepe" | "manual_upi" | "pay_at_hotel";
+
+type PaymentConfig = {
+  phonePeEnabled: boolean;
+  manualUpiEnabled: boolean;
+  payAtHotelEnabled: boolean;
+  upiId?: string;
+  upiName?: string;
+};
+
+function getDefaultPaymentMethod(config: PaymentConfig): PaymentMethod {
+  if (config.phonePeEnabled) {
+    return "phonepe";
+  }
+
+  if (config.manualUpiEnabled) {
+    return "manual_upi";
+  }
+
+  return "pay_at_hotel";
+}
 
 export default function BookingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, token } = useContext(AuthContext);
   const [room, setRoom] = useState<any>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("phonepe");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pay_at_hotel");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>({
+    phonePeEnabled: false,
+    manualUpiEnabled: false,
+    payAtHotelEnabled: true,
+  });
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -32,9 +57,21 @@ export default function BookingPage() {
 
     const fetchRoom = async () => {
       try {
-        const { data } = await axios.get(`${API_BASE_URL}/api/rooms/${id}`);
-        if (data.success) {
-          setRoom(data.room);
+        const [roomResponse, paymentConfigResponse] = await Promise.allSettled([
+          axios.get(`${API_BASE_URL}/api/rooms/${id}`),
+          axios.get(`${API_BASE_URL}/api/payment/config`),
+        ]);
+
+        if (roomResponse.status === "fulfilled" && roomResponse.value.data.success) {
+          setRoom(roomResponse.value.data.room);
+        } else {
+          throw new Error("Room request failed");
+        }
+
+        if (paymentConfigResponse.status === "fulfilled" && paymentConfigResponse.value.data.success) {
+          const nextConfig = paymentConfigResponse.value.data.payment as PaymentConfig;
+          setPaymentConfig(nextConfig);
+          setPaymentMethod(getDefaultPaymentMethod(nextConfig));
         }
       } catch (error) {
         toast.error("Failed to fetch room details");
@@ -94,6 +131,16 @@ export default function BookingPage() {
       return;
     }
 
+    if (paymentMethod === "phonepe" && !paymentConfig.phonePeEnabled) {
+      toast.error("PhonePe UPI payments are currently unavailable. Please choose another option.");
+      return;
+    }
+
+    if (paymentMethod === "manual_upi" && !paymentConfig.manualUpiEnabled) {
+      toast.error("Direct UPI payments are currently unavailable. Please choose another option.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -113,6 +160,21 @@ export default function BookingPage() {
         if (data.success) {
           toast.success("Booking confirmed! Please pay at the hotel upon arrival.");
           navigate(`/booking-confirmation/${data.booking._id}`);
+        }
+
+        return;
+      }
+
+      if (paymentMethod === "manual_upi") {
+        const { data } = await axios.post(
+          `${API_BASE_URL}/api/bookings/manual-booking`,
+          { bookingData },
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+
+        if (data.success) {
+          toast.success("Booking created. Complete the hotel UPI payment to finish confirmation.");
+          navigate(`/payment/${data.booking._id}`);
         }
 
         return;
@@ -258,21 +320,73 @@ export default function BookingPage() {
           <div className="mt-8 border-t border-slate-100 pt-6">
             <label className="mb-4 block text-sm font-semibold text-slate-900">Payment Method</label>
             <div className="grid gap-3">
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:border-slate-300">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="phonepe"
-                  checked={paymentMethod === "phonepe"}
-                  onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
-                  className="mt-1 h-4 w-4 cursor-pointer"
-                />
-                <div>
-                  <p className="font-semibold text-slate-900">PhonePe</p>
-                  <p className="text-sm text-slate-500">Pay instantly with PhonePe UPI intent.</p>
+              {paymentConfig.phonePeEnabled ? (
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                    paymentMethod === "phonepe"
+                      ? "border-slate-900 bg-slate-50"
+                      : "border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="phonepe"
+                    checked={paymentMethod === "phonepe"}
+                    onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
+                    className="mt-1 h-4 w-4 cursor-pointer"
+                  />
+                  <div>
+                    <p className="font-semibold text-slate-900">PhonePe UPI</p>
+                    <p className="text-sm text-slate-500">Pay instantly using PhonePe and supported UPI apps.</p>
+                  </div>
+                </label>
+              ) : (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  {paymentConfig.manualUpiEnabled
+                    ? "PhonePe UPI is unavailable right now. You can still continue with direct hotel UPI or pay at hotel."
+                    : "PhonePe UPI is unavailable right now. You can still complete your booking with Pay at Hotel."}
                 </div>
-              </label>
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:border-slate-300">
+              )}
+              {paymentConfig.manualUpiEnabled && (
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                    paymentMethod === "manual_upi"
+                      ? "border-slate-900 bg-slate-50"
+                      : "border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="manual_upi"
+                    checked={paymentMethod === "manual_upi"}
+                    onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
+                    className="mt-1 h-4 w-4 cursor-pointer"
+                  />
+                  <div>
+                    <p className="font-semibold text-slate-900">Direct Hotel UPI</p>
+                    <p className="text-sm text-slate-500">
+                      Transfer to the hotel UPI ID, then confirm the payment on WhatsApp or email for verification.
+                    </p>
+                    {paymentConfig.upiId && (
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        UPI ID: <span className="normal-case text-slate-700">{paymentConfig.upiId}</span>
+                      </p>
+                    )}
+                    {paymentConfig.upiName && (
+                      <p className="mt-1 text-xs text-slate-500">Receiver: {paymentConfig.upiName}</p>
+                    )}
+                  </div>
+                </label>
+              )}
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                  paymentMethod === "pay_at_hotel"
+                    ? "border-slate-900 bg-slate-50"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
                 <input
                   type="radio"
                   name="paymentMethod"
@@ -299,7 +413,11 @@ export default function BookingPage() {
               {paymentMethod === "phonepe"
                 ? isSubmitting
                   ? "Connecting to PhonePe"
-                  : "Pay with PhonePe"
+                  : "Pay with PhonePe UPI"
+                : paymentMethod === "manual_upi"
+                  ? isSubmitting
+                    ? "Preparing UPI Instructions"
+                    : "Continue to Direct UPI Payment"
                 : isSubmitting
                   ? "Confirming Booking"
                   : "Confirm Pay at Hotel Booking"}

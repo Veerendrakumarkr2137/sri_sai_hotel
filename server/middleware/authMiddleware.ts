@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
+import { getJwtSecret } from "../lib/runtimeConfig";
 
-const JWT_SECRET = process.env.JWT_SECRET || "hotel-sai-development-secret";
+const JWT_SECRET = getJwtSecret();
 
 type AuthRole = "user" | "admin";
 export type AuthTokenPayload = {

@@ -2,20 +2,55 @@ import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
-import { Trash2, Copy } from "lucide-react";
+import { Trash2, Copy, CheckCircle2 } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
 import { motion } from "motion/react";
 import { revealSoft, revealUp, sectionStagger } from "../lib/animations";
+
+function getPaymentMethodLabel(paymentMethod: string) {
+  if (paymentMethod === "manual_upi") {
+    return "Direct UPI";
+  }
+
+  if (paymentMethod === "pay_at_hotel") {
+    return "Pay at Hotel";
+  }
+
+  if (paymentMethod === "PhonePe") {
+    return "PhonePe UPI";
+  }
+
+  return paymentMethod || "Unknown";
+}
+
+function getPaymentStatusClasses(paymentStatus: string) {
+  if (paymentStatus === "paid") {
+    return "bg-emerald-50 text-emerald-700";
+  }
+
+  if (paymentStatus === "submitted") {
+    return "bg-sky-50 text-sky-700";
+  }
+
+  if (paymentStatus === "failed") {
+    return "bg-red-50 text-red-700";
+  }
+
+  return "bg-amber-50 text-amber-700";
+}
 
 export default function AdminBookings() {
   const { token } = useContext(AuthContext);
   const [bookings, setBookings] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredBookings, setFilteredBookings] = useState<any[]>([]);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchBookings();
-  }, []);
+    if (token) {
+      fetchBookings();
+    }
+  }, [token]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -42,6 +77,15 @@ export default function AdminBookings() {
       }
     } catch (err) {
       toast.error("Failed to load bookings");
+    }
+  };
+
+  const copyBookingRef = async (bookingRef: string) => {
+    try {
+      await navigator.clipboard.writeText(bookingRef);
+      toast.success("Booking reference copied");
+    } catch {
+      toast.error("Unable to copy booking reference");
     }
   };
 
@@ -74,6 +118,29 @@ export default function AdminBookings() {
     }
   };
 
+  const verifyManualPayment = async (id: string) => {
+    setVerifyingId(id);
+
+    try {
+      const { data } = await axios.put(
+        `${API_BASE_URL}/api/bookings/admin/${id}/verify-manual-payment`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      if (data.success) {
+        toast.success("Manual UPI payment verified");
+        fetchBookings();
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Failed to verify manual payment");
+    } finally {
+      setVerifyingId(null);
+    }
+  };
+
   return (
     <motion.div initial="hidden" animate="visible" variants={sectionStagger} className="max-w-7xl mx-auto">
       <motion.h1 variants={revealUp} className="mb-8 text-3xl font-bold text-slate-900">
@@ -103,6 +170,7 @@ export default function AdminBookings() {
               <th className="px-6 py-4 font-semibold">Ref / Room</th>
               <th className="px-6 py-4 font-semibold">Guest Name</th>
               <th className="px-6 py-4 font-semibold">Dates</th>
+              <th className="px-6 py-4 font-semibold">Payment</th>
               <th className="px-6 py-4 font-semibold">Status</th>
               <th className="px-6 py-4 text-right font-semibold">Actions</th>
             </tr>
@@ -119,7 +187,10 @@ export default function AdminBookings() {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2 font-semibold text-slate-900">
                     {booking.bookingRef}
-                    <button className="text-slate-400 transition-colors hover:text-slate-600">
+                    <button
+                      onClick={() => copyBookingRef(booking.bookingRef)}
+                      className="text-slate-400 transition-colors hover:text-slate-600"
+                    >
                       <Copy className="w-4 h-4" />
                     </button>
                   </div>
@@ -134,6 +205,23 @@ export default function AdminBookings() {
                   <div className="text-slate-900">In: {new Date(booking.checkInDate).toLocaleDateString()}</div>
                   <div className="text-slate-500">Out: {new Date(booking.checkOutDate).toLocaleDateString()}</div>
                   <div className="mt-1 font-medium text-slate-600">{booking.guests} Guests</div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="space-y-2">
+                    <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      {getPaymentMethodLabel(booking.paymentMethod)}
+                    </span>
+                    <div>
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getPaymentStatusClasses(booking.paymentStatus)}`}
+                      >
+                        {booking.paymentStatus}
+                      </span>
+                    </div>
+                    <div className="text-xs font-medium text-slate-500">
+                      Rs. {Number(booking.totalPrice || 0).toLocaleString("en-IN")}
+                    </div>
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   <motion.div whileHover={{ y: -1 }}>
@@ -170,6 +258,25 @@ export default function AdminBookings() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-3">
+                    {booking.paymentMethod === "manual_upi" &&
+                      booking.paymentStatus !== "paid" &&
+                      booking.bookingStatus !== "cancelled" &&
+                      booking.bookingStatus !== "completed" && (
+                        <motion.button
+                          whileHover={{ y: -1 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => verifyManualPayment(booking._id)}
+                          disabled={verifyingId === booking._id}
+                          className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-70"
+                        >
+                          {verifyingId === booking._id ? (
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-300 border-t-emerald-700" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
+                          Verify UPI
+                        </motion.button>
+                      )}
                     <motion.button
                       whileHover={{ y: -1 }}
                       whileTap={{ scale: 0.95 }}

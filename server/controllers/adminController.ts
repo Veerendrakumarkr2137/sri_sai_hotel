@@ -5,22 +5,46 @@ import { Room } from "../models/Room";
 
 export const getDashboardStats = async (req: Request, res: Response): Promise<any> => {
   try {
-    const totalUsers = await User.countDocuments();
-    const totalBookings = await Booking.countDocuments();
-    const totalRooms = await Room.countDocuments();
-    
-    // Revenue from paid bookings
-    const bookings = await Booking.find({ paymentStatus: "paid" });
-    const revenue = bookings.reduce((sum, booking) => sum + booking.totalPrice, 0);
+    const [
+      totalUsers,
+      adminCount,
+      totalBookings,
+      totalRooms,
+      revenueResult,
+      recentUsers,
+    ] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ role: "admin" }),
+      Booking.countDocuments(),
+      Room.countDocuments(),
+      Booking.aggregate([
+        { $match: { paymentStatus: "paid" } },
+        {
+          $group: {
+            _id: null,
+            revenue: { $sum: "$totalPrice" },
+          },
+        },
+      ]),
+      User.find({})
+        .select("name email role createdAt")
+        .sort({ createdAt: -1 })
+        .limit(3),
+    ]);
+    const revenue = revenueResult[0]?.revenue || 0;
+    const guestCount = Math.max(totalUsers - adminCount, 0);
 
     return res.json({
       success: true,
       stats: {
         totalUsers,
+        adminCount,
+        guestCount,
         totalBookings,
         totalRooms,
         revenue,
       },
+      recentUsers,
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: "Failed to fetch stats" });

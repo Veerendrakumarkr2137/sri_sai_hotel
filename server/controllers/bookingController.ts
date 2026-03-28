@@ -3,10 +3,13 @@ import { Booking } from "../models/Booking";
 import { Room } from "../models/Room";
 import Razorpay from "razorpay";
 import crypto from "crypto";
-import dotenv from "dotenv";
 import nodemailer from "nodemailer";
-
-dotenv.config();
+import {
+  BookingValidationError,
+  ensureRoomAvailability,
+  validateBookingInput,
+} from "../lib/bookingValidation";
+import { getFrontendUrl, getHotelContactDetails, getHotelUpiDetails } from "../lib/runtimeConfig";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "test_key",
@@ -21,22 +24,39 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-
-console.log("Email config:", {
-  user: process.env.EMAIL_USER,
-  passSet: !!process.env.EMAIL_PASS,
-  frontendUrl: FRONTEND_URL,
-});
-
-// Verify transporter once at startup so any auth issues show immediately
 transporter.verify((error) => {
   if (error) {
     console.error("Email transporter verification failed:", error);
-  } else {
-    console.log("Email transporter is ready to send messages");
   }
 });
+
+function getBookingFrontendUrl() {
+  return getFrontendUrl();
+}
+
+function getUpiId() {
+  return getHotelUpiDetails().upiId || "your-upi-id@phonepe";
+}
+
+function getSupportContactSummary() {
+  const contactDetails = getHotelContactDetails();
+  const parts = [
+    contactDetails.whatsAppNumber
+      ? `WhatsApp: ${contactDetails.supportPhone || contactDetails.whatsAppNumber}`
+      : "",
+    contactDetails.supportEmail ? `Email: ${contactDetails.supportEmail}` : "",
+  ].filter(Boolean);
+
+  return parts.join(" | ");
+}
+
+function handleBookingError(error: unknown, response: Response, fallbackMessage: string) {
+  if (error instanceof BookingValidationError) {
+    return response.status(error.status).json({ success: false, error: error.message });
+  }
+
+  return response.status(500).json({ success: false, error: fallbackMessage });
+}
 
 function formatDate(date: Date) {
   return new Date(date).toLocaleDateString(undefined, {
@@ -79,7 +99,7 @@ function buildBookingEmailHTML({
 }) {
   const checkIn = formatDate(checkInDate);
   const checkOut = formatDate(checkOutDate);
-  const amount = `₹${totalPrice.toFixed(2)}`;
+  const amount = `Rs. ${totalPrice.toFixed(2)}`;
 
   return `
     <html>
@@ -114,7 +134,7 @@ function buildBookingEmailHTML({
                   <tr>
                     <td style="padding:12px 14px;background:#f1f5f9;border-radius:12px;margin-top:8px;">
                       <strong style="font-size:13px;color:#0b1b3d;">Dates</strong><br />
-                      <span style="font-size:15px;color:#0b1b3d;">${checkIn} → ${checkOut}</span>
+                      <span style="font-size:15px;color:#0b1b3d;">${checkIn} to ${checkOut}</span>
                     </td>
                   </tr>
                   <tr>
@@ -145,7 +165,7 @@ function buildBookingEmailHTML({
             </tr>
             <tr>
               <td style="background:#0b1b3d;padding:18px 32px;text-align:center;color:#cbd5e1;font-size:12px;">
-                © ${new Date().getFullYear()} Hotel Sai International. All rights reserved.
+                (c) ${new Date().getFullYear()} Hotel Sai International. All rights reserved.
               </td>
             </tr>
           </table>
@@ -173,7 +193,12 @@ function sendEmail({ to, subject, html, text }: { to: string; subject: string; h
 
 export const createRazorpayOrder = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { amount } = req.body;
+    const amount = Number(req.body?.amount);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ success: false, error: "A valid amount is required" });
+    }
+
     const options = {
       amount: amount * 100, // Razorpay works in paise
       currency: "INR",
@@ -189,25 +214,33 @@ export const createRazorpayOrder = async (req: Request, res: Response): Promise<
 export const createPayAtHotelBooking = async (req: any, res: Response): Promise<any> => {
   try {
     const { bookingData } = req.body;
-    const { roomId, name, email, phone, checkInDate, checkOutDate, guests, totalPrice } = bookingData;
+    const { roomId } = bookingData || {};
     
     const room = await Room.findById(roomId);
     if (!room) {
       return res.status(404).json({ success: false, error: "Room not found" });
     }
 
+    const validatedBooking = await validateBookingInput(room, bookingData);
+    await ensureRoomAvailability(
+      room._id,
+      validatedBooking.checkInDate,
+      validatedBooking.checkOutDate,
+      room.availableRooms,
+    );
+
     const bookingRef = `HSI-${Date.now()}`;
     const booking = await Booking.create({
       bookingRef,
       userId: req.auth?.userId,
       roomId,
-      name,
-      email,
-      phone,
-      checkInDate,
-      checkOutDate,
-      guests,
-      totalPrice,
+      name: validatedBooking.name,
+      email: validatedBooking.email,
+      phone: validatedBooking.phone,
+      checkInDate: validatedBooking.checkInDate,
+      checkOutDate: validatedBooking.checkOutDate,
+      guests: validatedBooking.guests,
+      totalPrice: validatedBooking.totalPrice,
       paymentStatus: "pending",
       bookingStatus: "confirmed",
       paymentMethod: "pay_at_hotel",
@@ -217,16 +250,16 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
     });
 
     // Send email asynchronously without blocking the response
-    const bookingUrl = `${FRONTEND_URL}/my-bookings`;
-    const payNowUrl = `${FRONTEND_URL}/payment/${booking._id}`;
+    const bookingUrl = `${getBookingFrontendUrl()}/my-bookings`;
+    const payNowUrl = `${getBookingFrontendUrl()}/payment/${booking._id}`;
     const html = buildBookingEmailHTML({
-      name,
+      name: validatedBooking.name,
       bookingRef,
       roomTitle: room.title,
-      checkInDate,
-      checkOutDate,
-      guests,
-      totalPrice,
+      checkInDate: validatedBooking.checkInDate,
+      checkOutDate: validatedBooking.checkOutDate,
+      guests: validatedBooking.guests,
+      totalPrice: validatedBooking.totalPrice,
       headline: "Your booking is confirmed!",
       message: "Thanks for booking with Hotel Sai International. Your reservation is confirmed and you can pay at the hotel upon arrival. If you want a faster check-in experience, you can also pay online before you arrive.",
       actionLabel: "Pay now to save time",
@@ -237,40 +270,48 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
     });
 
     sendEmail({
-      to: email,
+      to: validatedBooking.email,
       subject: "Booking Confirmed - Hotel Sai International",
       html,
-      text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${totalPrice}. You can pay at the hotel upon arrival or pay now to save time here: ${payNowUrl}`,
+      text: `Hello ${validatedBooking.name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${validatedBooking.totalPrice}. You can pay at the hotel upon arrival or pay now to save time here: ${payNowUrl}`,
     });
 
     return res.status(201).json({ success: true, booking });
   } catch (error) {
-    return res.status(500).json({ success: false, error: "Booking creation failed" });
+    return handleBookingError(error, res, "Booking creation failed");
   }
 };
 
 export const createManualBooking = async (req: any, res: Response): Promise<any> => {
   try {
     const { bookingData } = req.body;
-    const { roomId, name, email, phone, checkInDate, checkOutDate, guests, totalPrice } = bookingData;
+    const { roomId } = bookingData || {};
     
     const room = await Room.findById(roomId);
     if (!room) {
       return res.status(404).json({ success: false, error: "Room not found" });
     }
 
+    const validatedBooking = await validateBookingInput(room, bookingData);
+    await ensureRoomAvailability(
+      room._id,
+      validatedBooking.checkInDate,
+      validatedBooking.checkOutDate,
+      room.availableRooms,
+    );
+
     const bookingRef = `HSI-${Date.now()}`;
     const booking = await Booking.create({
       bookingRef,
       userId: req.auth?.userId,
       roomId,
-      name,
-      email,
-      phone,
-      checkInDate,
-      checkOutDate,
-      guests,
-      totalPrice,
+      name: validatedBooking.name,
+      email: validatedBooking.email,
+      phone: validatedBooking.phone,
+      checkInDate: validatedBooking.checkInDate,
+      checkOutDate: validatedBooking.checkOutDate,
+      guests: validatedBooking.guests,
+      totalPrice: validatedBooking.totalPrice,
       paymentStatus: "pending",
       bookingStatus: "pending_payment",
       paymentMethod: "manual_upi",
@@ -280,32 +321,35 @@ export const createManualBooking = async (req: any, res: Response): Promise<any>
     });
 
     // Send email asynchronously without blocking the response
-    const paymentUrl = `${FRONTEND_URL}/payment/${booking._id}`;
+    const paymentUrl = `${getBookingFrontendUrl()}/payment/${booking._id}`;
+    const supportContactSummary = getSupportContactSummary();
     const html = buildBookingEmailHTML({
-      name,
+      name: validatedBooking.name,
       bookingRef,
       roomTitle: room.title,
-      checkInDate,
-      checkOutDate,
-      guests,
-      totalPrice,
+      checkInDate: validatedBooking.checkInDate,
+      checkOutDate: validatedBooking.checkOutDate,
+      guests: validatedBooking.guests,
+      totalPrice: validatedBooking.totalPrice,
       headline: "Your booking is almost complete",
-      message: `Please complete payment via UPI to confirm your reservation. Your UPI ID is <strong>${process.env.UPI_ID || "your-upi-id@phonepe"}</strong>. Once you have made the payment, click the button below to confirm your booking.`,
-      actionLabel: "Confirm payment",
+      message: `Please complete payment via UPI to continue your reservation. Your UPI ID is <strong>${getUpiId()}</strong>. After payment, use the confirmation options on your payment page to message the hotel on WhatsApp or email with your booking reference and payment proof.`,
+      actionLabel: "View payment instructions",
       actionUrl: paymentUrl,
-      extraInfo: `If you need help, reply to this email and we'll assist you.`,
+      extraInfo: supportContactSummary
+        ? `Manual UPI payments are verified by hotel staff before the booking is marked as paid. Contact options: ${supportContactSummary}.`
+        : "Manual UPI payments are verified by hotel staff before the booking is marked as paid.",
     });
 
     sendEmail({
-      to: email,
+      to: validatedBooking.email,
       subject: "Complete your payment - Hotel Sai International",
       html,
-      text: `Hello ${name}, please complete payment of Rs. ${totalPrice} to UPI ID ${process.env.UPI_ID || "your-upi-id@phonepe"}. Booking Ref: ${bookingRef}.`,
+      text: `Hello ${validatedBooking.name}, please complete payment of Rs. ${validatedBooking.totalPrice} to UPI ID ${getUpiId()}. Booking Ref: ${bookingRef}. After payment, use the payment page to confirm with the hotel on WhatsApp or email so staff can verify it.`,
     });
 
     return res.status(201).json({ success: true, booking });
   } catch (error) {
-    return res.status(500).json({ success: false, error: "Booking creation failed" });
+    return handleBookingError(error, res, "Booking creation failed");
   }
 };
 
@@ -324,7 +368,8 @@ export const getBooking = async (req: any, res: Response): Promise<any> => {
       success: true,
       booking: {
         ...booking.toObject(),
-        upiId: process.env.UPI_ID || "",
+        ...getHotelUpiDetails(),
+        ...getHotelContactDetails(),
       },
     });
   } catch (error) {
@@ -343,38 +388,38 @@ export const confirmPayment = async (req: any, res: Response): Promise<any> => {
       return res.status(403).json({ success: false, error: "Access denied" });
     }
 
-    if (booking.paymentStatus === "paid") {
-      return res.json({ success: true, booking });
+    if (booking.paymentMethod === "manual_upi") {
+      if (["cancelled", "completed"].includes(booking.bookingStatus)) {
+        return res.status(400).json({
+          success: false,
+          error: "This booking can no longer accept payment submissions.",
+        });
+      }
+
+      if (booking.paymentStatus === "paid") {
+        return res.status(400).json({
+          success: false,
+          error: "This payment has already been verified by hotel staff.",
+        });
+      }
+
+      if (booking.paymentStatus !== "submitted") {
+        booking.paymentStatus = "submitted";
+        booking.bookingStatus = "pending_payment";
+        await booking.save();
+      }
+
+      return res.json({
+        success: true,
+        message: "Payment submitted successfully. Hotel staff will verify it shortly.",
+        booking,
+      });
     }
 
-    booking.paymentStatus = "paid";
-    booking.bookingStatus = "confirmed";
-    await booking.save();
-
-    const bookingUrl = `${FRONTEND_URL}/my-bookings`;
-    const html = buildBookingEmailHTML({
-      name: booking.name,
-      bookingRef: booking.bookingRef,
-      roomTitle: (booking.roomId as any)?.title || "Room",
-      checkInDate: booking.checkInDate,
-      checkOutDate: booking.checkOutDate,
-      guests: booking.guests,
-      totalPrice: booking.totalPrice,
-      headline: "Payment received!",
-      message: "Thank you for completing your payment. Your booking is now confirmed.",
-      actionLabel: "View my bookings",
-      actionUrl: bookingUrl,
-      extraInfo: "We look forward to hosting you at Hotel Sai International.",
+    return res.status(400).json({
+      success: false,
+      error: "This booking does not support manual payment confirmation.",
     });
-
-    sendEmail({
-      to: booking.email,
-      subject: "Payment Confirmed - Hotel Sai International",
-      html,
-      text: `Hello ${booking.name}, your payment has been received and your booking is confirmed. Booking Ref: ${booking.bookingRef}.`,
-    });
-
-    return res.json({ success: true, booking });
   } catch (error) {
     return res.status(500).json({ success: false, error: "Failed to confirm payment" });
   }
@@ -402,25 +447,33 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
       return res.status(400).json({ success: false, error: "Invalid API signature" });
     }
 
-    const { roomId, name, email, phone, checkInDate, checkOutDate, guests, totalPrice } = bookingData;
+    const { roomId } = bookingData || {};
     
     const room = await Room.findById(roomId);
     if (!room) {
       return res.status(404).json({ success: false, error: "Room not found" });
     }
 
+    const validatedBooking = await validateBookingInput(room, bookingData);
+    await ensureRoomAvailability(
+      room._id,
+      validatedBooking.checkInDate,
+      validatedBooking.checkOutDate,
+      room.availableRooms,
+    );
+
     const bookingRef = `HSI-${Date.now()}`;
     const booking = await Booking.create({
       bookingRef,
       userId: req.auth?.userId,
       roomId,
-      name,
-      email,
-      phone,
-      checkInDate,
-      checkOutDate,
-      guests,
-      totalPrice,
+      name: validatedBooking.name,
+      email: validatedBooking.email,
+      phone: validatedBooking.phone,
+      checkInDate: validatedBooking.checkInDate,
+      checkOutDate: validatedBooking.checkOutDate,
+      guests: validatedBooking.guests,
+      totalPrice: validatedBooking.totalPrice,
       paymentStatus: "paid",
       bookingStatus: "confirmed",
       paymentMethod: paymentMethod || "card",
@@ -432,9 +485,9 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
     // Send email asynchronously without blocking the response
     transporter.sendMail({
       from: process.env.EMAIL_USER,
-      to: email,
+      to: validatedBooking.email,
       subject: "Booking Confirmation - Hotel Sai International",
-      text: `Hello ${name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Paid: Rs. ${totalPrice}.`,
+      text: `Hello ${validatedBooking.name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Paid: Rs. ${validatedBooking.totalPrice}.`,
     }, (err, info) => {
       if (err) {
         console.error("Email error:", err);
@@ -445,7 +498,7 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
 
     return res.status(201).json({ success: true, booking });
   } catch (error) {
-    return res.status(500).json({ success: false, error: "Payment verification failed" });
+    return handleBookingError(error, res, "Payment verification failed");
   }
 };
 
@@ -460,7 +513,10 @@ export const getMyBookings = async (req: any, res: Response): Promise<any> => {
 
 export const getAllBookings = async (req: Request, res: Response): Promise<any> => {
   try {
-    const bookings = await Booking.find({}).populate("roomId").populate("userId");
+    const bookings = await Booking.find({})
+      .sort({ createdAt: -1 })
+      .populate("roomId")
+      .populate("userId");
     return res.json({ success: true, bookings });
   } catch (error) {
     return res.status(500).json({ success: false, error: "Failed to fetch bookings" });
@@ -477,11 +533,104 @@ export const deleteBooking = async (req: Request, res: Response): Promise<any> =
    }
 };
 
+export const verifyManualUpiPayment = async (req: any, res: Response): Promise<any> => {
+  try {
+    const booking = await Booking.findById(req.params.id).populate("roomId");
+
+    if (!booking) {
+      return res.status(404).json({ success: false, error: "Booking not found" });
+    }
+
+    if (booking.paymentMethod !== "manual_upi") {
+      return res.status(400).json({
+        success: false,
+        error: "Only manual UPI bookings can be verified from this action.",
+      });
+    }
+
+    if (["cancelled", "completed"].includes(booking.bookingStatus)) {
+      return res.status(400).json({
+        success: false,
+        error: "This booking can no longer be verified.",
+      });
+    }
+
+    if (booking.paymentStatus === "paid") {
+      return res.status(400).json({
+        success: false,
+        error: "This manual UPI payment has already been verified.",
+      });
+    }
+
+    booking.paymentStatus = "paid";
+    booking.bookingStatus = "confirmed";
+    booking.paymentId = booking.paymentId || `manual-upi-${Date.now()}`;
+    await booking.save();
+
+    const roomTitle =
+      typeof booking.roomId === "object" && booking.roomId && "title" in booking.roomId
+        ? String(booking.roomId.title)
+        : "Room";
+    const bookingUrl = `${getBookingFrontendUrl()}/booking-confirmation/${booking._id}`;
+    const html = buildBookingEmailHTML({
+      name: booking.name,
+      bookingRef: booking.bookingRef,
+      roomTitle,
+      checkInDate: booking.checkInDate,
+      checkOutDate: booking.checkOutDate,
+      guests: booking.guests,
+      totalPrice: booking.totalPrice,
+      headline: "Your manual UPI payment has been verified",
+      message: "Our team has verified your UPI transfer. Your booking is now fully confirmed and ready for your stay.",
+      actionLabel: "View booking confirmation",
+      actionUrl: bookingUrl,
+      extraInfo: "Please keep your booking reference handy when you arrive at the hotel.",
+    });
+
+    sendEmail({
+      to: booking.email,
+      subject: "Manual UPI payment verified - Hotel Sai International",
+      html,
+      text: `Hello ${booking.name}, your manual UPI payment for booking ${booking.bookingRef} has been verified. Your booking is now confirmed.`,
+    });
+
+    return res.json({
+      success: true,
+      message: "Manual UPI payment verified successfully.",
+      booking,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: "Failed to verify manual UPI payment" });
+  }
+};
+
 export const updateBookingStatus = async (req: Request, res: Response): Promise<any> => {
    try {
       const { status } = req.body;
-      const booking = await Booking.findByIdAndUpdate(req.params.id, { bookingStatus: status }, { new: true });
-      if(!booking) return res.status(404).json({ success: false, error: "Not found" });
+      const allowedStatuses = new Set(["pending", "pending_payment", "confirmed", "cancelled", "completed"]);
+
+      if (!allowedStatuses.has(status)) {
+        return res.status(400).json({ success: false, error: "Invalid booking status" });
+      }
+
+      const booking = await Booking.findById(req.params.id);
+
+      if (!booking) {
+        return res.status(404).json({ success: false, error: "Not found" });
+      }
+
+      const canConfirmWithoutPaidStatus = booking.paymentMethod === "pay_at_hotel";
+
+      if (status === "confirmed" && booking.paymentStatus !== "paid" && !canConfirmWithoutPaidStatus) {
+        return res.status(400).json({
+          success: false,
+          error: "This booking cannot be confirmed until the payment is verified.",
+        });
+      }
+
+      booking.bookingStatus = status;
+      await booking.save();
+
       return res.json({ success: true, booking });
    } catch (e) {
      return res.status(500).json({ success: false, error: "Failed to update" });

@@ -4,10 +4,15 @@ import { Response } from "express";
 import { Booking } from "../models/Booking";
 import { Room } from "../models/Room";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
+import {
+  BookingValidationError,
+  ensureRoomAvailability,
+  validateBookingInput,
+} from "../lib/bookingValidation";
+import { getFrontendUrl, getHotelContactDetails, getHotelUpiDetails } from "../lib/runtimeConfig";
 
 const PHONEPE_BASE_URL = "https://api-preprod.phonepe.com/apis/pg-sandbox";
 const PHONEPE_PAY_PATH = "/pg/v1/pay";
-const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/+$/, "");
 
 type PaymentBookingData = {
   roomId: string;
@@ -17,7 +22,7 @@ type PaymentBookingData = {
   checkInDate: string;
   checkOutDate: string;
   guests: number;
-  totalPrice: number;
+  totalPrice?: number;
 };
 
 type PhonePeConfig = {
@@ -60,7 +65,7 @@ function getServerBaseUrl(request: AuthenticatedRequest) {
     : forwardedProtoHeader;
   const protocol = forwardedProto?.split(",")[0]?.trim() || request.protocol || "http";
   const host = request.get("host");
-  return host ? `${protocol}://${host}` : FRONTEND_URL;
+  return host ? `${protocol}://${host}` : getFrontendUrl();
 }
 
 function getPhonePeStatusPath(merchantId: string, transactionId: string) {
@@ -79,8 +84,7 @@ function isValidBookingData(bookingData?: Partial<PaymentBookingData>): bookingD
       bookingData.phone &&
       bookingData.checkInDate &&
       bookingData.checkOutDate &&
-      Number(bookingData.guests) > 0 &&
-      Number(bookingData.totalPrice) > 0,
+      Number(bookingData.guests) > 0,
   );
 }
 
@@ -172,6 +176,10 @@ async function prepareBookingForPayment(
       return { error: "Booking not found", status: 404 as const };
     }
 
+    if (["cancelled", "completed"].includes(existingBooking.bookingStatus)) {
+      return { error: "This booking can no longer be paid online", status: 400 as const };
+    }
+
     if (existingBooking.paymentStatus === "paid") {
       return { error: "This booking is already paid", status: 400 as const };
     }
@@ -198,18 +206,26 @@ async function prepareBookingForPayment(
     return { error: "Room not found", status: 404 as const };
   }
 
+  const validatedBooking = await validateBookingInput(room, bookingData);
+  await ensureRoomAvailability(
+    room._id,
+    validatedBooking.checkInDate,
+    validatedBooking.checkOutDate,
+    room.availableRooms,
+  );
+
   const bookingRef = `HSI-${Date.now()}`;
   const booking = await Booking.create({
     bookingRef,
     userId,
     roomId: bookingData.roomId,
-    name: bookingData.name,
-    email: bookingData.email,
-    phone: bookingData.phone,
-    checkInDate: bookingData.checkInDate,
-    checkOutDate: bookingData.checkOutDate,
-    guests: Number(bookingData.guests),
-    totalPrice: Number(bookingData.totalPrice),
+    name: validatedBooking.name,
+    email: validatedBooking.email,
+    phone: validatedBooking.phone,
+    checkInDate: validatedBooking.checkInDate,
+    checkOutDate: validatedBooking.checkOutDate,
+    guests: validatedBooking.guests,
+    totalPrice: validatedBooking.totalPrice,
     paymentStatus: "pending",
     bookingStatus: "pending_payment",
     paymentMethod: "PhonePe",
@@ -304,7 +320,7 @@ export async function createPhonePePayment(request: AuthenticatedRequest, respon
 
     activeBooking = preparedBooking.booking;
     const serverBaseUrl = getServerBaseUrl(request);
-    const redirectUrl = `${FRONTEND_URL}/booking-confirmation/${activeBooking._id}?transactionId=${transactionId}`;
+    const redirectUrl = `${getFrontendUrl()}/booking-confirmation/${activeBooking._id}?transactionId=${transactionId}`;
     const callbackUrl = `${serverBaseUrl}/api/payment/phonepe/callback/${transactionId}`;
     const payload = {
       merchantId: config.merchantId,
@@ -356,6 +372,14 @@ export async function createPhonePePayment(request: AuthenticatedRequest, respon
       await activeBooking.save();
     }
 
+    if (error instanceof BookingValidationError) {
+      return response.status(error.status).json({
+        success: false,
+        error: error.message,
+        bookingId: activeBooking?._id,
+      });
+    }
+
     const bookingId = error?.response?.data?.bookingId || activeBooking?._id;
     const errorMessage =
       error?.response?.data?.message ||
@@ -368,6 +392,22 @@ export async function createPhonePePayment(request: AuthenticatedRequest, respon
       bookingId,
     });
   }
+}
+
+export async function getPaymentConfig(_request: AuthenticatedRequest, response: Response): Promise<any> {
+  const hotelUpiDetails = getHotelUpiDetails();
+  const hotelContactDetails = getHotelContactDetails();
+
+  return response.json({
+    success: true,
+    payment: {
+      phonePeEnabled: Boolean(getPhonePeConfig()),
+      manualUpiEnabled: Boolean(hotelUpiDetails.upiId),
+      payAtHotelEnabled: true,
+      ...hotelUpiDetails,
+      ...hotelContactDetails,
+    },
+  });
 }
 
 export async function getPhonePePaymentStatus(request: AuthenticatedRequest, response: Response): Promise<any> {

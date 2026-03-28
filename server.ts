@@ -12,10 +12,9 @@ import bookingRoutes from "./server/routes/bookingRoutes";
 import adminRoutes from "./server/routes/adminRoutes";
 import paymentRoutes from "./server/routes/paymentRoutes";
 import { ensureDefaultRooms, syncRoomIndexes } from "./server/lib/ensureDefaultRooms";
+import { getAllowedCorsOrigins } from "./server/lib/runtimeConfig";
 
-const dotenvResult = dotenv.config();
-console.log("Loaded .env:", dotenvResult);
-console.log("Process cwd:", process.cwd());
+dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
@@ -25,12 +24,7 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://veerendra2137_db_u
 const app = express();
 
 app.use(cors({
-  origin: [
-    "https://sri-sai-hotel.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    process.env.FRONTEND_URL || "",
-  ].filter(Boolean),
+  origin: getAllowedCorsOrigins(),
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]

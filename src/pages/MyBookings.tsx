@@ -6,6 +6,22 @@ import { Link } from "react-router-dom";
 import { CalendarDays, Home, CheckCircle2 } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
 
+function getPaymentStatusClasses(paymentStatus: string) {
+  if (paymentStatus === "paid") {
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  if (paymentStatus === "submitted") {
+    return "bg-sky-100 text-sky-700";
+  }
+
+  if (paymentStatus === "failed") {
+    return "bg-red-100 text-red-700";
+  }
+
+  return "bg-amber-100 text-amber-700";
+}
+
 export default function MyBookings() {
   const { token } = useContext(AuthContext);
   const [bookings, setBookings] = useState<any[]>([]);
@@ -89,14 +105,19 @@ export default function MyBookings() {
                     <h3 className="text-2xl font-bold text-slate-900">
                       {booking.roomId?.title || "Luxury Room"}
                     </h3>
-                    <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                      booking.bookingStatus === 'confirmed' ? 'bg-emerald-100 text-emerald-700' :
-                      booking.bookingStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
-                      booking.bookingStatus === 'completed' ? 'bg-blue-100 text-blue-700' :
-                      'bg-amber-100 text-amber-700'
-                    }`}>
-                      {booking.bookingStatus}
-                    </span>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                        booking.bookingStatus === 'confirmed' ? 'bg-emerald-100 text-emerald-700' :
+                        booking.bookingStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
+                        booking.bookingStatus === 'completed' ? 'bg-blue-100 text-blue-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {booking.bookingStatus}
+                      </span>
+                      <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${getPaymentStatusClasses(booking.paymentStatus)}`}>
+                        Payment {booking.paymentStatus}
+                      </span>
+                    </div>
                   </div>
                   <p className="text-slate-500 font-mono text-sm mb-4">Ref: {booking.bookingRef}</p>
                 </div>
@@ -143,6 +164,28 @@ export default function MyBookings() {
                       {canceling === booking._id ? "Cancelling..." : "Cancel Booking"}
                     </button>
                     <p className="text-xs text-slate-400 mt-1">Free cancellation up to 48 hours before check-in.</p>
+                  </div>
+                )}
+
+                {booking.bookingStatus === "pending_payment" && (
+                  <div className="pt-4 border-t border-slate-100 mt-2">
+                    <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${getPaymentStatusClasses(booking.paymentStatus)}`}>
+                      {booking.paymentStatus === "submitted" ? "Payment Submitted" : "Payment Pending"}
+                    </div>
+                    <div className="mb-3">
+                      <Link
+                        to={booking.paymentMethod === "manual_upi" ? `/booking-confirmation/${booking._id}` : `/payment/${booking._id}`}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-900"
+                      >
+                        <CalendarDays className="h-4 w-4" />
+                        {booking.paymentStatus === "submitted" ? "View payment status" : "Complete payment"}
+                      </Link>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {booking.paymentStatus === "submitted"
+                        ? "Your payment has been submitted to the hotel for verification."
+                        : "This booking is waiting for payment verification."}
+                    </p>
                   </div>
                 )}
               </div>

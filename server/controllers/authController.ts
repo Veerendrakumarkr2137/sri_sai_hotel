@@ -3,8 +3,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { User } from "../models/User";
+import { getJwtSecret } from "../lib/runtimeConfig";
 
-const JWT_SECRET = process.env.JWT_SECRET || "hotel-sai-development-secret";
+const JWT_SECRET = getJwtSecret();
 
 function issueUserToken(user: { _id: mongoose.Types.ObjectId; email: string }) {
   return jwt.sign(
