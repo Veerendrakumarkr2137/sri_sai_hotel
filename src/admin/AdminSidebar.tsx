@@ -1,18 +1,20 @@
 import React, { useContext } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { LayoutDashboard, Hotel, ClipboardList, LogOut } from "lucide-react";
+import { LayoutDashboard, Hotel, ClipboardList, LogIn, LogOut } from "lucide-react";
 import { motion } from "motion/react";
 import { easeOutExpo } from "../lib/animations";
 
 export default function AdminSidebar() {
-  const { logout } = useContext(AuthContext);
+  const { logoutAdmin } = useContext(AuthContext);
   const location = useLocation();
 
   const menu = [
     { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Rooms", path: "/admin/rooms", icon: Hotel },
     { name: "Bookings", path: "/admin/bookings", icon: ClipboardList },
+    { name: "Check-In", path: "/admin/check-in", icon: LogIn },
+    { name: "Check-Out", path: "/admin/check-out", icon: LogOut },
   ];
 
   return (
@@ -58,7 +60,7 @@ export default function AdminSidebar() {
         <motion.button
           whileHover={{ y: -1 }}
           whileTap={{ scale: 0.98 }}
-          onClick={logout}
+          onClick={logoutAdmin}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-500/10 px-4 py-3 font-semibold text-red-500 transition-colors hover:bg-red-500/20"
         >
           <LogOut className="w-5 h-5" />

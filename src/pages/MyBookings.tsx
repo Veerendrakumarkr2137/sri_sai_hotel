@@ -5,34 +5,15 @@ import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import { CalendarDays, Home, CheckCircle2 } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
-
-function sortBookingsByNewest<T extends { createdAt?: string }>(items: T[]) {
-  return [...items].sort((left, right) => {
-    const leftTime = new Date(left.createdAt || 0).getTime();
-    const rightTime = new Date(right.createdAt || 0).getTime();
-
-    return rightTime - leftTime;
-  });
-}
-
-function getPaymentStatusClasses(paymentStatus: string) {
-  if (paymentStatus === "paid") {
-    return "bg-emerald-100 text-emerald-700";
-  }
-
-  if (paymentStatus === "submitted") {
-    return "bg-sky-100 text-sky-700";
-  }
-
-  if (paymentStatus === "failed") {
-    return "bg-red-100 text-red-700";
-  }
-
-  return "bg-amber-100 text-amber-700";
-}
+import {
+  getBookingStatusClasses,
+  getBookingStatusLabel,
+  getPaymentStatusClasses,
+  sortBookingsByNewest,
+} from "../lib/bookingUi";
 
 export default function MyBookings() {
-  const { token } = useContext(AuthContext);
+  const { userToken } = useContext(AuthContext);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [canceling, setCanceling] = useState<string | null>(null);
@@ -41,7 +22,7 @@ export default function MyBookings() {
     const fetchBookings = async () => {
       try {
         const { data } = await axios.get(`${API_BASE_URL}/api/bookings/my-bookings`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${userToken}` }
         });
         if (data.success) {
           setBookings(sortBookingsByNewest(data.bookings));
@@ -53,8 +34,8 @@ export default function MyBookings() {
       }
     };
 
-    if (token) fetchBookings();
-  }, [token]);
+    if (userToken) fetchBookings();
+  }, [userToken]);
 
   const handleCancelBooking = async (bookingId: string) => {
     if (!window.confirm("Are you sure you want to cancel this booking?")) return;
@@ -64,7 +45,7 @@ export default function MyBookings() {
       const { data } = await axios.put(
         `${API_BASE_URL}/api/bookings/${bookingId}/cancel`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${userToken}` } }
       );
       if (data.success) {
         setBookings(bookings.map(b => b._id === bookingId ? { ...b, bookingStatus: 'cancelled' } : b));
@@ -115,13 +96,8 @@ export default function MyBookings() {
                       {booking.roomId?.title || "Luxury Room"}
                     </h3>
                     <div className="flex flex-col items-end gap-2">
-                      <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                        booking.bookingStatus === 'confirmed' ? 'bg-emerald-100 text-emerald-700' :
-                        booking.bookingStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
-                        booking.bookingStatus === 'completed' ? 'bg-blue-100 text-blue-700' :
-                        'bg-amber-100 text-amber-700'
-                      }`}>
-                        {booking.bookingStatus}
+                      <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${getBookingStatusClasses(booking.bookingStatus)}`}>
+                        {getBookingStatusLabel(booking.bookingStatus)}
                       </span>
                       <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${getPaymentStatusClasses(booking.paymentStatus)}`}>
                         Payment {booking.paymentStatus}
@@ -173,6 +149,35 @@ export default function MyBookings() {
                       {canceling === booking._id ? "Cancelling..." : "Cancel Booking"}
                     </button>
                     <p className="text-xs text-slate-400 mt-1">Free cancellation up to 48 hours before check-in.</p>
+                  </div>
+                )}
+
+                {booking.bookingStatus === "checked_in" && (
+                  <div className="pt-4 border-t border-slate-100 mt-2">
+                    <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Checked In
+                    </div>
+                    <div className="mb-3">
+                      <Link
+                        to={`/booking-confirmation/${booking._id}`}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-800"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        View current stay
+                      </Link>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">Your stay is currently active at the hotel.</p>
+                  </div>
+                )}
+
+                {booking.bookingStatus === "completed" && (
+                  <div className="pt-4 border-t border-slate-100 mt-2">
+                    <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Checked Out
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">This stay has been completed and closed by the hotel.</p>
                   </div>
                 )}
 

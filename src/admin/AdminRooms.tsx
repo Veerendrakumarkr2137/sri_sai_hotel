@@ -18,7 +18,7 @@ const defaultFormState = {
 };
 
 export default function AdminRooms() {
-  const { token } = useContext(AuthContext);
+  const { adminToken } = useContext(AuthContext);
   const [rooms, setRooms] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingRoom, setEditingRoom] = useState<any>(null);
@@ -66,7 +66,7 @@ export default function AdminRooms() {
 
       if (editingRoom) {
         const { data } = await axios.put(`${API_BASE_URL}/api/rooms/${editingRoom._id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${adminToken}` },
         });
 
         if (data.success) {
@@ -77,7 +77,7 @@ export default function AdminRooms() {
         }
       } else {
         const { data } = await axios.post(`${API_BASE_URL}/api/rooms`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${adminToken}` },
         });
 
         if (data.success) {
@@ -109,7 +109,7 @@ export default function AdminRooms() {
     if (!window.confirm("Are you sure?")) return;
     try {
       await axios.delete(`${API_BASE_URL}/api/rooms/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${adminToken}` },
       });
       toast.success("Room deleted");
       fetchRooms();

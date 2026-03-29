@@ -1,8 +1,7 @@
 import { Types } from "mongoose";
 import { Booking } from "../models/Booking";
 import { Room } from "../models/Room";
-
-const ACTIVE_BOOKING_STATUSES = ["pending", "pending_payment", "confirmed"] as const;
+import { ACTIVE_BOOKING_STATUSES } from "./bookingLifecycle";
 
 type RawBookingData = {
   roomId?: string;

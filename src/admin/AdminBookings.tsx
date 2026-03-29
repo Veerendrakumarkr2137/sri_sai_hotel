@@ -1,55 +1,22 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { Trash2, Copy, CheckCircle2 } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
 import { motion } from "motion/react";
 import { revealSoft, revealUp, sectionStagger } from "../lib/animations";
-
-function sortBookingsByNewest<T extends { createdAt?: string }>(items: T[]) {
-  return [...items].sort((left, right) => {
-    const leftTime = new Date(left.createdAt || 0).getTime();
-    const rightTime = new Date(right.createdAt || 0).getTime();
-
-    return rightTime - leftTime;
-  });
-}
-
-function getPaymentMethodLabel(paymentMethod: string) {
-  if (paymentMethod === "manual_upi") {
-    return "Direct UPI";
-  }
-
-  if (paymentMethod === "pay_at_hotel") {
-    return "Pay at Hotel";
-  }
-
-  if (paymentMethod === "PhonePe") {
-    return "PhonePe UPI";
-  }
-
-  return paymentMethod || "Unknown";
-}
-
-function getPaymentStatusClasses(paymentStatus: string) {
-  if (paymentStatus === "paid") {
-    return "bg-emerald-50 text-emerald-700";
-  }
-
-  if (paymentStatus === "submitted") {
-    return "bg-sky-50 text-sky-700";
-  }
-
-  if (paymentStatus === "failed") {
-    return "bg-red-50 text-red-700";
-  }
-
-  return "bg-amber-50 text-amber-700";
-}
+import {
+  getBookingStatusLabel,
+  getBookingStatusSelectClasses,
+  getPaymentMethodLabel,
+  getPaymentStatusClasses,
+  sortBookingsByNewest,
+} from "../lib/bookingUi";
 
 export default function AdminBookings() {
-  const { token } = useContext(AuthContext);
+  const { adminToken } = useContext(AuthContext);
   const [bookings, setBookings] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredBookings, setFilteredBookings] = useState<any[]>([]);
@@ -79,7 +46,7 @@ export default function AdminBookings() {
   const fetchBookings = async () => {
     try {
       const { data } = await axios.get(`${API_BASE_URL}/api/bookings/admin/all`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${adminToken}` },
       });
       if (data.success) {
         setBookings(sortBookingsByNewest(data.bookings));
@@ -102,7 +69,7 @@ export default function AdminBookings() {
     if (!window.confirm("Are you sure?")) return;
     try {
       await axios.delete(`${API_BASE_URL}/api/bookings/admin/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${adminToken}` },
       });
       toast.success("Booking deleted");
       fetchBookings();
@@ -117,7 +84,7 @@ export default function AdminBookings() {
         `${API_BASE_URL}/api/bookings/admin/${id}/status`,
         { status },
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${adminToken}` },
         }
       );
       toast.success(`Booking ${status}`);
@@ -135,7 +102,7 @@ export default function AdminBookings() {
         `${API_BASE_URL}/api/bookings/admin/${id}/verify-manual-payment`,
         {},
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${adminToken}` },
         },
       );
 
@@ -155,6 +122,21 @@ export default function AdminBookings() {
       <motion.h1 variants={revealUp} className="mb-8 text-3xl font-bold text-slate-900">
         Manage Bookings
       </motion.h1>
+
+      <motion.div variants={revealSoft} className="mb-6 grid gap-4 md:grid-cols-2">
+        <Link
+          to="/admin/check-in"
+          className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-100"
+        >
+          Open Check-In Desk
+        </Link>
+        <Link
+          to="/admin/check-out"
+          className="rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-sm font-semibold text-indigo-700 transition-colors hover:bg-indigo-100"
+        >
+          Open Check-Out Desk
+        </Link>
+      </motion.div>
 
       <motion.div variants={revealSoft} className="mb-6">
         <input
@@ -221,10 +203,10 @@ export default function AdminBookings() {
                       {getPaymentMethodLabel(booking.paymentMethod)}
                     </span>
                     <div>
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getPaymentStatusClasses(booking.paymentStatus)}`}
-                      >
-                        {booking.paymentStatus}
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getPaymentStatusClasses(booking.paymentStatus)}`}
+                    >
+                      {booking.paymentStatus}
                       </span>
                     </div>
                     <div className="text-xs font-medium text-slate-500">
@@ -237,15 +219,7 @@ export default function AdminBookings() {
                     <select
                       value={booking.bookingStatus}
                       onChange={(e) => updateStatus(booking._id, e.target.value)}
-                      className={`block w-full cursor-pointer rounded-lg border border-transparent p-2 px-3 text-sm font-semibold outline-none focus:border-slate-900 focus:ring-slate-900 ${
-                        booking.bookingStatus === "confirmed"
-                          ? "bg-emerald-50 text-emerald-600"
-                          : booking.bookingStatus === "pending_payment"
-                            ? "bg-orange-50 text-orange-600"
-                            : booking.bookingStatus === "pending"
-                              ? "bg-amber-50 text-amber-600"
-                              : "bg-slate-50 text-slate-600"
-                      }`}
+                      className={`block w-full cursor-pointer rounded-lg border border-transparent p-2 px-3 text-sm font-semibold outline-none focus:border-slate-900 focus:ring-slate-900 ${getBookingStatusSelectClasses(booking.bookingStatus)}`}
                     >
                       <option value="pending" className="text-slate-900">
                         Pending
@@ -256,13 +230,19 @@ export default function AdminBookings() {
                       <option value="confirmed" className="text-slate-900">
                         Confirmed
                       </option>
+                      <option value="checked_in" className="text-slate-900">
+                        Checked In
+                      </option>
                       <option value="cancelled" className="text-slate-900">
                         Cancelled
                       </option>
                       <option value="completed" className="text-slate-900">
-                        Completed
+                        Checked Out
                       </option>
                     </select>
+                    <p className="mt-2 text-xs font-medium text-slate-500">
+                      Current: {getBookingStatusLabel(booking.bookingStatus)}
+                    </p>
                   </motion.div>
                 </td>
                 <td className="px-6 py-4 text-right">

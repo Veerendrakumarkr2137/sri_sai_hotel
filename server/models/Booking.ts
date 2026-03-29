@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { BOOKING_STATUSES, PAYMENT_METHODS, PAYMENT_STATUSES } from "../lib/bookingLifecycle";
 
 const bookingSchema = new mongoose.Schema({
   bookingRef: { type: String, required: true, unique: true },
@@ -12,12 +13,18 @@ const bookingSchema = new mongoose.Schema({
   guests: { type: Number, required: true },
   totalPrice: { type: Number, required: true },
   transactionId: { type: String, index: true },
-  paymentStatus: { type: String, enum: ["pending", "submitted", "paid", "failed"], default: "pending" },
-  bookingStatus: { type: String, enum: ["pending", "pending_payment", "confirmed", "cancelled", "completed"], default: "pending" },
-  paymentMethod: { type: String, enum: ["card", "upi", "wallet", "manual_upi", "pay_at_hotel", "PhonePe"], default: "card" },
+  paymentStatus: { type: String, enum: PAYMENT_STATUSES, default: "pending" },
+  bookingStatus: { type: String, enum: BOOKING_STATUSES, default: "pending" },
+  paymentMethod: { type: String, enum: PAYMENT_METHODS, default: "card" },
   paymentId: { type: String },
   orderId: { type: String },
   signature: { type: String },
+  paymentSubmittedAt: { type: Date, default: null },
+  paymentVerifiedAt: { type: Date, default: null },
+  bookingConfirmedAt: { type: Date, default: null },
+  checkedInAt: { type: Date, default: null },
+  checkedOutAt: { type: Date, default: null },
+  cancelledAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 

@@ -7,7 +7,7 @@ import { API_BASE_URL } from "../lib/api";
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const { login } = useContext(AuthContext);
+  const { loginUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -21,9 +21,13 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API_BASE_URL}/api/auth/login`, formData);
+      const payload = {
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+      };
+      const { data } = await axios.post(`${API_BASE_URL}/api/auth/login`, payload);
       if (data.success) {
-        login(data.token, data.user);
+        loginUser(data.token, data.user);
         toast.success("Login successful");
         navigate(redirectTo);
       }

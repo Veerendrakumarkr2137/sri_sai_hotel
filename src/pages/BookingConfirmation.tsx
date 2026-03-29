@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { CalendarDays, CheckCircle2, Clock3, CreditCard, Home, XCircle } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
 import { createAuthHeaders, getUserToken } from "../lib/auth";
+import { getBookingStatusClasses, getBookingStatusLabel } from "../lib/bookingUi";
 import { buildPaymentConfirmationEmailLink, buildWhatsAppLink } from "../lib/paymentContact";
 
 type ConfirmationState = "loading" | "success" | "failed" | "pending" | "submitted";
@@ -438,11 +439,9 @@ export default function BookingConfirmationPage() {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Booking status</span>
-                    <span className={`inline-flex items-center gap-2 font-semibold ${
-                      booking.bookingStatus === "confirmed" ? "text-emerald-700" : "text-slate-900"
-                    }`}>
-                      {booking.bookingStatus === "confirmed" && <CheckCircle2 className="h-4 w-4" />}
-                      {booking.bookingStatus}
+                    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${getBookingStatusClasses(booking.bookingStatus)}`}>
+                      {(booking.bookingStatus === "confirmed" || booking.bookingStatus === "checked_in") && <CheckCircle2 className="h-4 w-4" />}
+                      {getBookingStatusLabel(booking.bookingStatus)}
                     </span>
                   </div>
                   {transactionId && (

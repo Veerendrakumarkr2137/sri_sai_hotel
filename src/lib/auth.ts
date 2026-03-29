@@ -2,6 +2,7 @@ export type SessionUser = {
   id: string;
   name: string;
   email: string;
+  role: "user";
 };
 
 export const AUTH_CHANGE_EVENT = "authchange";
@@ -73,6 +74,7 @@ export function getStoredUser() {
       id: typeof parsedUser.id === "string" ? parsedUser.id : "",
       name: parsedUser.name,
       email: parsedUser.email,
+      role: "user",
     };
   } catch {
     removeStorage(USER_KEY);
@@ -82,12 +84,12 @@ export function getStoredUser() {
 
 export function setUserSession(token: string, user: SessionUser) {
   writeStorage(USER_TOKEN_KEY, token);
-  writeStorage(USER_KEY, JSON.stringify(user));
+  writeStorage(USER_KEY, JSON.stringify({ ...user, role: "user" }));
   notifyAuthChange();
 }
 
 export function updateStoredUser(user: SessionUser) {
-  writeStorage(USER_KEY, JSON.stringify(user));
+  writeStorage(USER_KEY, JSON.stringify({ ...user, role: "user" }));
   notifyAuthChange();
 }
 

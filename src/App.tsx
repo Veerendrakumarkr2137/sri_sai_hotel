@@ -28,6 +28,8 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./admin/AdminDashboard"));
 const AdminRooms = lazy(() => import("./admin/AdminRooms"));
 const AdminBookings = lazy(() => import("./admin/AdminBookings"));
+const AdminCheckIn = lazy(() => import("./admin/AdminCheckIn"));
+const AdminCheckOut = lazy(() => import("./admin/AdminCheckOut"));
 
 // User Pages
 const MyBookings = lazy(() => import("./pages/MyBookings"));
@@ -133,6 +135,8 @@ export default function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="rooms" element={<AdminRooms />} />
             <Route path="bookings" element={<AdminBookings />} />
+            <Route path="check-in" element={<AdminCheckIn />} />
+            <Route path="check-out" element={<AdminCheckOut />} />
           </Route>
 
           {/* Fallback */}

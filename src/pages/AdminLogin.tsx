@@ -8,7 +8,7 @@ import { API_BASE_URL } from "../lib/api";
 
 export default function AdminLogin() {
   const [formData, setFormData] = useState({ username: "", password: "" });
-  const { login } = useContext(AuthContext);
+  const { loginAdmin } = useContext(AuthContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +18,7 @@ export default function AdminLogin() {
     try {
       const { data } = await axios.post(`${API_BASE_URL}/api/auth/admin/login`, formData);
       if (data.success) {
-        login(data.token, { id: "admin", name: "Admin", email: "admin@hotelsai.com", role: "admin" });
+        loginAdmin(data.token);
         toast.success("Admin login successful");
         navigate("/admin/dashboard");
       }

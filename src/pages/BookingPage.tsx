@@ -30,7 +30,7 @@ function getDefaultPaymentMethod(config: PaymentConfig): PaymentMethod {
 export default function BookingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, token } = useContext(AuthContext);
+  const { user, userToken } = useContext(AuthContext);
   const [room, setRoom] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pay_at_hotel");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,7 +49,7 @@ export default function BookingPage() {
   });
 
   useEffect(() => {
-    if (!token) {
+    if (!userToken) {
       toast.error("Please login to book a room");
       navigate("/login");
       return;
@@ -79,7 +79,7 @@ export default function BookingPage() {
     };
 
     fetchRoom();
-  }, [id, navigate, token]);
+  }, [id, navigate, userToken]);
 
   useEffect(() => {
     setFormData((current) => ({
@@ -154,7 +154,7 @@ export default function BookingPage() {
         const { data } = await axios.post(
           `${API_BASE_URL}/api/bookings/pay-at-hotel`,
           { bookingData },
-          { headers: { Authorization: `Bearer ${token}` } },
+          { headers: { Authorization: `Bearer ${userToken}` } },
         );
 
         if (data.success) {
@@ -169,7 +169,7 @@ export default function BookingPage() {
         const { data } = await axios.post(
           `${API_BASE_URL}/api/bookings/manual-booking`,
           { bookingData },
-          { headers: { Authorization: `Bearer ${token}` } },
+          { headers: { Authorization: `Bearer ${userToken}` } },
         );
 
         if (data.success) {
@@ -183,7 +183,7 @@ export default function BookingPage() {
       const { data } = await axios.post(
         `${API_BASE_URL}/api/payment/phonepe`,
         { bookingData },
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Authorization: `Bearer ${userToken}` } },
       );
 
       if (!data.success || !data.redirectUrl) {

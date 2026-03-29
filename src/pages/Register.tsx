@@ -7,7 +7,7 @@ import { API_BASE_URL } from "../lib/api";
 
 export default function Register() {
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
-  const { login } = useContext(AuthContext);
+  const { loginUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -21,15 +21,20 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API_BASE_URL}/api/auth/register`, formData);
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+      };
+      const { data } = await axios.post(`${API_BASE_URL}/api/auth/register`, payload);
       if (data.success) {
         // Log them right in
         const loginRes = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-          email: formData.email,
-          password: formData.password
+          email: payload.email,
+          password: payload.password
         });
         if (loginRes.data.success) {
-          login(loginRes.data.token, loginRes.data.user);
+          loginUser(loginRes.data.token, loginRes.data.user);
           toast.success("Account created successfully");
           navigate(redirectTo);
         }

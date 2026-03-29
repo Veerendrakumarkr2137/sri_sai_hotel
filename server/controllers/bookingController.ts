@@ -609,7 +609,7 @@ export const verifyManualUpiPayment = async (req: any, res: Response): Promise<a
 export const updateBookingStatus = async (req: Request, res: Response): Promise<any> => {
    try {
       const { status } = req.body;
-      const allowedStatuses = new Set(["pending", "pending_payment", "confirmed", "cancelled", "completed"]);
+      const allowedStatuses = new Set(["pending", "pending_payment", "confirmed", "checked_in", "cancelled", "completed"]);
 
       if (!allowedStatuses.has(status)) {
         return res.status(400).json({ success: false, error: "Invalid booking status" });
@@ -621,12 +621,53 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
         return res.status(404).json({ success: false, error: "Not found" });
       }
 
+      if (booking.bookingStatus === status) {
+        return res.json({ success: true, booking });
+      }
+
+      const allowedTransitions = {
+        pending: new Set(["pending_payment", "confirmed", "cancelled"]),
+        pending_payment: new Set(["confirmed", "cancelled"]),
+        confirmed: new Set(["checked_in", "cancelled"]),
+        checked_in: new Set(["completed"]),
+        cancelled: new Set<string>(),
+        completed: new Set<string>(),
+      } as const;
+
+      const nextStatuses = allowedTransitions[booking.bookingStatus as keyof typeof allowedTransitions];
+
+      if (!nextStatuses || !nextStatuses.has(status)) {
+        return res.status(400).json({
+          success: false,
+          error: "This booking cannot move to that status.",
+        });
+      }
+
       const canConfirmWithoutPaidStatus = booking.paymentMethod === "pay_at_hotel";
 
       if (status === "confirmed" && booking.paymentStatus !== "paid" && !canConfirmWithoutPaidStatus) {
         return res.status(400).json({
           success: false,
           error: "This booking cannot be confirmed until the payment is verified.",
+        });
+      }
+
+      if (status === "checked_in" && booking.bookingStatus !== "confirmed") {
+        return res.status(400).json({
+          success: false,
+          error: "Only confirmed bookings can be checked in.",
+        });
+      }
+
+      if (status === "checked_in" && booking.paymentMethod === "pay_at_hotel" && booking.paymentStatus !== "paid") {
+        booking.paymentStatus = "paid";
+        booking.paymentId = booking.paymentId || `hotel-desk-${Date.now()}`;
+      }
+
+      if (status === "completed" && booking.bookingStatus !== "checked_in") {
+        return res.status(400).json({
+          success: false,
+          error: "Only checked-in bookings can be checked out.",
         });
       }
 
