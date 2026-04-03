@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API_URL } from "../lib/api";
 
 export default function BookingSearch() {
 
@@ -8,7 +9,7 @@ export default function BookingSearch() {
 
   const searchBooking = async () => {
 
-    const res = await fetch("/api/search-booking", {
+    const res = await fetch(`${API_URL}/api/search-booking`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

@@ -2,11 +2,66 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
+import { OAuth2Client } from "google-auth-library";
 import { User } from "../models/User";
-import { getJwtSecret } from "../lib/runtimeConfig";
+import { getFrontendUrl, getJwtSecret } from "../lib/runtimeConfig";
 import { buildCaseInsensitiveEmailLookup, normalizeEmail } from "../lib/userEmail";
 
 const JWT_SECRET = getJwtSecret();
+const PASSWORD_RESET_TTL_MINUTES = 30;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
+
+const emailUser = process.env.EMAIL_USER || "";
+const emailPass = process.env.EMAIL_PASS || "";
+const emailConfigured = Boolean(emailUser && emailPass);
+
+const emailTransporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: emailUser,
+    pass: emailPass,
+  },
+});
+
+if (emailConfigured) {
+  emailTransporter.verify((error) => {
+    if (error) {
+      console.error("Auth email transporter verification failed:", error);
+    }
+  });
+}
+
+function hashResetToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function sendPasswordResetEmail(email: string, resetUrl: string) {
+  if (!emailConfigured) {
+    console.warn("Email credentials are not configured. Skipping reset email.");
+    return;
+  }
+
+  emailTransporter.sendMail({
+    from: emailUser,
+    to: email,
+    subject: "Reset your password - Hotel Sai International",
+    html: `
+      <p>Hello,</p>
+      <p>We received a request to reset your password. Click the link below to set a new password:</p>
+      <p><a href="${resetUrl}">Reset your password</a></p>
+      <p>This link will expire in ${PASSWORD_RESET_TTL_MINUTES} minutes.</p>
+      <p>If you did not request this, you can safely ignore this email.</p>
+    `,
+    text: `Reset your password using this link: ${resetUrl}`,
+  }, (error) => {
+    if (error) {
+      console.error("Failed to send reset email:", error);
+    }
+  });
+}
 
 async function findUserByEmailAndPassword(email: string, password: string) {
   const normalizedEmail = normalizeEmail(email);
@@ -116,6 +171,126 @@ export const loginAdmin = async (req: Request, res: Response): Promise<any> => {
     return res.status(401).json({ success: false, error: "Invalid credentials" });
   } catch (error) {
     return res.status(500).json({ success: false, error: "Server error" });
+  }
+};
+
+export const loginWithGoogle = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const idToken = String(req.body?.idToken || "").trim();
+
+    if (!idToken) {
+      return res.status(400).json({ success: false, error: "Google token is required" });
+    }
+
+    if (!googleClient || !GOOGLE_CLIENT_ID) {
+      return res.status(500).json({ success: false, error: "Google login is not configured" });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const email = payload?.email ? normalizeEmail(payload.email) : "";
+
+    if (!email) {
+      return res.status(400).json({ success: false, error: "Unable to read Google account email" });
+    }
+
+    let user = await User.findOne({ email: buildCaseInsensitiveEmailLookup(email) });
+
+    if (!user) {
+      const randomPassword = crypto.randomBytes(24).toString("hex");
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+      const displayName = payload?.name?.trim() || "Guest";
+      user = await User.create({ name: displayName, email, password: hashedPassword });
+    }
+
+    return res.json({
+      success: true,
+      token: issueUserToken(user),
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+    });
+  } catch (error: any) {
+    console.error("Google login error:", error?.message || error);
+    return res.status(500).json({ success: false, error: "Google login failed" });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const rawEmail = String(req.body?.email || "").trim();
+    if (!rawEmail) {
+      return res.status(400).json({ success: false, error: "Email is required" });
+    }
+
+    const normalizedEmail = normalizeEmail(rawEmail);
+    const user = await User.findOne({ email: buildCaseInsensitiveEmailLookup(normalizedEmail) });
+
+    if (user) {
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      const resetTokenHash = hashResetToken(resetToken);
+      const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MINUTES * 60 * 1000);
+
+      user.passwordResetTokenHash = resetTokenHash;
+      user.passwordResetExpiresAt = expiresAt;
+      await user.save();
+
+      const resetUrl = `${getFrontendUrl()}/reset-password?token=${resetToken}`;
+      sendPasswordResetEmail(user.email, resetUrl);
+
+      if (process.env.NODE_ENV !== "production") {
+        return res.json({
+          success: true,
+          message: "Password reset link generated.",
+          resetUrl,
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: "If an account exists for that email, a reset link has been sent.",
+    });
+  } catch (error: any) {
+    console.error("Forgot password error:", error?.message || error);
+    return res.status(500).json({ success: false, error: "Unable to process your request right now." });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    const password = String(req.body?.password || "");
+
+    if (!token || !password) {
+      return res.status(400).json({ success: false, error: "Token and password are required" });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, error: "Password must be at least 8 characters long" });
+    }
+
+    const resetTokenHash = hashResetToken(token);
+    const user = await User.findOne({
+      passwordResetTokenHash: resetTokenHash,
+      passwordResetExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, error: "This reset link is invalid or has expired." });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.passwordResetTokenHash = null;
+    user.passwordResetExpiresAt = null;
+    await user.save();
+
+    return res.json({ success: true, message: "Password reset successful." });
+  } catch (error: any) {
+    console.error("Reset password error:", error?.message || error);
+    return res.status(500).json({ success: false, error: "Unable to reset password right now." });
   }
 };
 

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { Users, Building, ClipboardList, IndianRupee, ShieldCheck, LogIn, LogOut } from "lucide-react";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 import { motion } from "motion/react";
 import { hoverLift, revealSoft, revealUp, sectionStagger } from "../lib/animations";
 
@@ -35,7 +35,7 @@ export default function AdminDashboard() {
     const fetchDashboardData = async () => {
       try {
         setLoadError("");
-        const { data } = await axios.get(`${API_BASE_URL}/api/admin/stats`, {
+        const { data } = await axios.get(`${API_URL}/api/admin/stats`, {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
 
@@ -231,3 +231,4 @@ export default function AdminDashboard() {
     </motion.div>
   );
 }
+

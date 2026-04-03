@@ -8,6 +8,7 @@ import {
   createAuthHeaders,
   getAdminToken,
 } from "../lib/auth";
+import { API_URL } from "../lib/api";
 
 type Booking = {
   _id: string;
@@ -40,7 +41,7 @@ export default function AdminDashboard() {
 
       try {
         setError("");
-        const response = await fetch("/api/bookings", {
+        const response = await fetch(`${API_URL}/api/bookings/admin/all`, {
           headers: createAuthHeaders(token),
         });
 
@@ -82,7 +83,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      const response = await fetch(`/api/bookings/${id}`, {
+      const response = await fetch(`${API_URL}/api/bookings/admin/${id}`, {
         method: "DELETE",
         headers: createAuthHeaders(token),
       });
@@ -113,7 +114,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      const response = await fetch(`/api/bookings/${id}/status`, {
+      const response = await fetch(`${API_URL}/api/bookings/admin/${id}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

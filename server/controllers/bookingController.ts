@@ -10,6 +10,7 @@ import {
   validateBookingInput,
 } from "../lib/bookingValidation";
 import { getFrontendUrl, getHotelContactDetails, getHotelUpiDetails } from "../lib/runtimeConfig";
+import { normalizeEmail } from "../lib/userEmail";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "test_key",
@@ -64,6 +65,17 @@ function formatDate(date: Date) {
     month: "short",
     day: "numeric",
   });
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildCaseInsensitiveExactLookup(value: string) {
+  return {
+    $regex: `^${escapeRegExp(value)}$`,
+    $options: "i",
+  };
 }
 
 function buildBookingEmailHTML({
@@ -208,6 +220,46 @@ export const createRazorpayOrder = async (req: Request, res: Response): Promise<
     return res.json({ success: true, order });
   } catch (error) {
     return res.status(500).json({ success: false, error: "Failed to create order" });
+  }
+};
+
+export const searchBooking = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const bookingRef = String(req.body?.bookingRef || "").trim();
+    const email = normalizeEmail(String(req.body?.email || ""));
+
+    if (!bookingRef || !email) {
+      return res.status(400).json({ success: false, error: "Booking reference and email are required" });
+    }
+
+    const booking = await Booking.findOne({
+      bookingRef: buildCaseInsensitiveExactLookup(bookingRef),
+      email: buildCaseInsensitiveExactLookup(email),
+    }).populate("roomId");
+
+    if (!booking) {
+      return res.status(404).json({ success: false, error: "Booking not found" });
+    }
+
+    const roomTitle =
+      typeof booking.roomId === "object" && booking.roomId && "title" in booking.roomId
+        ? String(booking.roomId.title)
+        : "Room";
+
+    return res.json({
+      success: true,
+      booking: {
+        bookingRef: booking.bookingRef,
+        roomType: roomTitle,
+        checkIn: booking.checkInDate,
+        checkOut: booking.checkOutDate,
+        guests: booking.guests,
+        status: booking.bookingStatus,
+      },
+    });
+  } catch (error) {
+    console.error("Search booking error:", error);
+    return res.status(500).json({ success: false, error: "Failed to search booking" });
   }
 };
 

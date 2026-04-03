@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 
 type PaymentMethod = "phonepe" | "manual_upi" | "pay_at_hotel";
 
@@ -58,8 +58,8 @@ export default function BookingPage() {
     const fetchRoom = async () => {
       try {
         const [roomResponse, paymentConfigResponse] = await Promise.allSettled([
-          axios.get(`${API_BASE_URL}/api/rooms/${id}`),
-          axios.get(`${API_BASE_URL}/api/payment/config`),
+          axios.get(`${API_URL}/api/rooms/${id}`),
+          axios.get(`${API_URL}/api/payment/config`),
         ]);
 
         if (roomResponse.status === "fulfilled" && roomResponse.value.data.success) {
@@ -152,7 +152,7 @@ export default function BookingPage() {
 
       if (paymentMethod === "pay_at_hotel") {
         const { data } = await axios.post(
-          `${API_BASE_URL}/api/bookings/pay-at-hotel`,
+          `${API_URL}/api/bookings/pay-at-hotel`,
           { bookingData },
           { headers: { Authorization: `Bearer ${userToken}` } },
         );
@@ -167,7 +167,7 @@ export default function BookingPage() {
 
       if (paymentMethod === "manual_upi") {
         const { data } = await axios.post(
-          `${API_BASE_URL}/api/bookings/manual-booking`,
+          `${API_URL}/api/bookings/manual-booking`,
           { bookingData },
           { headers: { Authorization: `Bearer ${userToken}` } },
         );
@@ -181,7 +181,7 @@ export default function BookingPage() {
       }
 
       const { data } = await axios.post(
-        `${API_BASE_URL}/api/payment/phonepe`,
+        `${API_URL}/api/payment/phonepe`,
         { bookingData },
         { headers: { Authorization: `Bearer ${userToken}` } },
       );
@@ -428,3 +428,4 @@ export default function BookingPage() {
     </div>
   );
 }
+

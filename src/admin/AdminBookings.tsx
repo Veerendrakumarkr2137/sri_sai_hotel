@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { Trash2, Copy, CheckCircle2 } from "lucide-react";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 import { motion } from "motion/react";
 import { revealSoft, revealUp, sectionStagger } from "../lib/animations";
 import {
@@ -45,7 +45,7 @@ export default function AdminBookings() {
 
   const fetchBookings = async () => {
     try {
-      const { data } = await axios.get(`${API_BASE_URL}/api/bookings/admin/all`, {
+      const { data } = await axios.get(`${API_URL}/api/bookings/admin/all`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       if (data.success) {
@@ -68,7 +68,7 @@ export default function AdminBookings() {
   const deleteBooking = async (id: string) => {
     if (!window.confirm("Are you sure?")) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/bookings/admin/${id}`, {
+      await axios.delete(`${API_URL}/api/bookings/admin/${id}`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       toast.success("Booking deleted");
@@ -81,7 +81,7 @@ export default function AdminBookings() {
   const updateStatus = async (id: string, status: string) => {
     try {
       await axios.put(
-        `${API_BASE_URL}/api/bookings/admin/${id}/status`,
+        `${API_URL}/api/bookings/admin/${id}/status`,
         { status },
         {
           headers: { Authorization: `Bearer ${adminToken}` },
@@ -99,7 +99,7 @@ export default function AdminBookings() {
 
     try {
       const { data } = await axios.put(
-        `${API_BASE_URL}/api/bookings/admin/${id}/verify-manual-payment`,
+        `${API_URL}/api/bookings/admin/${id}/verify-manual-payment`,
         {},
         {
           headers: { Authorization: `Bearer ${adminToken}` },
@@ -290,3 +290,4 @@ export default function AdminBookings() {
     </motion.div>
   );
 }
+

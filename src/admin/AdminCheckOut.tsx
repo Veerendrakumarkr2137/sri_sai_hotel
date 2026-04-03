@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { CalendarDays, CheckCircle2, LogOut } from "lucide-react";
 import { motion } from "motion/react";
 import { AuthContext } from "../context/AuthContext";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 import { revealSoft, revealUp, sectionStagger } from "../lib/animations";
 import {
   getBookingStatusClasses,
@@ -100,7 +100,7 @@ export default function AdminCheckOut() {
     setLoading(true);
 
     try {
-      const { data } = await axios.get(`${API_BASE_URL}/api/bookings/admin/all`, {
+      const { data } = await axios.get(`${API_URL}/api/bookings/admin/all`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
 
@@ -157,7 +157,7 @@ export default function AdminCheckOut() {
 
     try {
       const { data } = await axios.put(
-        `${API_BASE_URL}/api/bookings/admin/${booking._id}/status`,
+        `${API_URL}/api/bookings/admin/${booking._id}/status`,
         { status: "completed" },
         {
           headers: { Authorization: `Bearer ${adminToken}` },
@@ -338,3 +338,4 @@ export default function AdminCheckOut() {
     </motion.div>
   );
 }
+

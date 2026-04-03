@@ -4,7 +4,7 @@ import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import { CalendarDays, Home, CheckCircle2 } from "lucide-react";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 import {
   getBookingStatusClasses,
   getBookingStatusLabel,
@@ -21,7 +21,7 @@ export default function MyBookings() {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const { data } = await axios.get(`${API_BASE_URL}/api/bookings/my-bookings`, {
+        const { data } = await axios.get(`${API_URL}/api/bookings/my-bookings`, {
           headers: { Authorization: `Bearer ${userToken}` }
         });
         if (data.success) {
@@ -43,7 +43,7 @@ export default function MyBookings() {
     setCanceling(bookingId);
     try {
       const { data } = await axios.put(
-        `${API_BASE_URL}/api/bookings/${bookingId}/cancel`,
+        `${API_URL}/api/bookings/${bookingId}/cancel`,
         {},
         { headers: { Authorization: `Bearer ${userToken}` } }
       );
@@ -210,3 +210,4 @@ export default function MyBookings() {
     </div>
   );
 }
+

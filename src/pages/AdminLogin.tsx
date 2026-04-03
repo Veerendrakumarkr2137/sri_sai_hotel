@@ -4,7 +4,7 @@ import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { ShieldAlert } from "lucide-react";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 
 export default function AdminLogin() {
   const [formData, setFormData] = useState({ username: "", password: "" });
@@ -16,14 +16,19 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API_BASE_URL}/api/auth/admin/login`, formData);
-      if (data.success) {
-        loginAdmin(data.token);
-        toast.success("Admin login successful");
-        navigate("/admin/dashboard");
+      const { data } = await axios.post(`${API_URL}/api/auth/admin/login`, formData);
+      if (!data?.success) {
+        throw new Error(data?.error || "Login failed");
       }
+      loginAdmin(data.token);
+      toast.success("Admin login successful");
+      navigate("/admin/dashboard");
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Login failed");
+      const serverMessage = err?.response?.data?.error || err?.response?.data?.message;
+      const fallbackMessage = err?.message?.includes("Network") || !err?.response
+        ? "Unable to reach the server. Please check the API URL or try again."
+        : "Login failed";
+      toast.error(serverMessage || fallbackMessage);
     } finally {
       setLoading(false);
     }
@@ -75,3 +80,4 @@ export default function AdminLogin() {
     </div>
   );
 }
+

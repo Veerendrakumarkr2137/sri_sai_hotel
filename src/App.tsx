@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Outlet, Navigate, useLocation }
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { motion, AnimatePresence } from "motion/react";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import { AuthProvider } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
@@ -22,6 +23,8 @@ const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Gallery = lazy(() => import("./pages/Gallery"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 // Admin pages
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
@@ -107,7 +110,9 @@ function AdminLayout() {
 }
 
 export default function App() {
-  return (
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const appContent = (
     <AuthProvider>
       <Router>
         <ToastContainer position="top-right" autoClose={3000} aria-label="Notifications" />
@@ -124,6 +129,8 @@ export default function App() {
             
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/payment/:id" element={<Payment />} />
             <Route path="/my-bookings" element={<MyBookings />} />
@@ -144,5 +151,15 @@ export default function App() {
         </Routes>
       </Router>
     </AuthProvider>
+  );
+
+  if (!googleClientId) {
+    return appContent;
+  }
+
+  return (
+    <GoogleOAuthProvider clientId={googleClientId}>
+      {appContent}
+    </GoogleOAuthProvider>
   );
 }

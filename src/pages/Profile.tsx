@@ -20,7 +20,7 @@ import {
   updateStoredUser,
   type SessionUser,
 } from "../lib/auth";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 import { hoverLift, revealSoft, revealUp, sectionStagger } from "../lib/animations";
 
 function getInitials(name: string) {
@@ -67,7 +67,7 @@ export default function Profile() {
 
     const loadProfile = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const response = await fetch(`${API_URL}/api/auth/me`, {
           headers: createAuthHeaders(token),
         });
         const data = await response.json();
@@ -127,7 +127,7 @@ export default function Profile() {
     setIsSavingProfile(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      const response = await fetch(`${API_URL}/api/auth/me`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -186,7 +186,7 @@ export default function Profile() {
     setIsChangingPassword(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+      const response = await fetch(`${API_URL}/api/auth/change-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -587,3 +587,4 @@ export default function Profile() {
     </div>
   );
 }
+

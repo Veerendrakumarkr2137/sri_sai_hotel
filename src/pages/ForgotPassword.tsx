@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { API_URL } from "../lib/api";
 
 async function readResponseData(response: Response) {
   const contentType = response.headers.get("content-type") || "";
@@ -56,7 +57,7 @@ export default function ForgotPassword() {
     setResetUrl("");
 
     try {
-      const response = await fetch("/api/forgot-password", {
+      const response = await fetch(`${API_URL}/api/forgot-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

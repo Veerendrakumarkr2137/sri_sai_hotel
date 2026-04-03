@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { Check, Users, Coffee, Wifi, Car, Waves, Tv, Shield } from "lucide-react";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 
 export default function RoomDetails() {
   const { id } = useParams();
@@ -12,7 +12,7 @@ export default function RoomDetails() {
   useEffect(() => {
     const fetchRoom = async () => {
       try {
-        const { data } = await axios.get(`${API_BASE_URL}/api/rooms/${id}`);
+        const { data } = await axios.get(`${API_URL}/api/rooms/${id}`);
         if (data.success) {
           setRoom(data.room);
         }
@@ -109,3 +109,4 @@ export default function RoomDetails() {
     </div>
   );
 }
+

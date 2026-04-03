@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 import { createAuthHeaders, getUserToken } from "../lib/auth";
 import {
   buildManualUpiConfirmationMessage,
@@ -86,7 +86,7 @@ export default function PaymentPage() {
     setIsCheckingStatus(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/payment/status/${transactionId}`, {
+      const response = await fetch(`${API_URL}/api/payment/status/${transactionId}`, {
         headers: createAuthHeaders(token),
       });
 
@@ -132,7 +132,7 @@ export default function PaymentPage() {
   useEffect(() => {
     const fetchPaymentConfig = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/payment/config`);
+        const response = await fetch(`${API_URL}/api/payment/config`);
         const data = await response.json();
 
         if (response.ok && data.success) {
@@ -156,7 +156,7 @@ export default function PaymentPage() {
 
     const fetchBooking = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/bookings/${id}`, {
+        const response = await fetch(`${API_URL}/api/bookings/${id}`, {
           headers: createAuthHeaders(token),
         });
 
@@ -217,7 +217,7 @@ export default function PaymentPage() {
     setIsRetrying(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/payment/phonepe`, {
+      const response = await fetch(`${API_URL}/api/payment/phonepe`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -253,7 +253,7 @@ export default function PaymentPage() {
     setIsSubmittingManualPayment(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/bookings/${booking._id}/confirm-payment`, {
+      const response = await fetch(`${API_URL}/api/bookings/${booking._id}/confirm-payment`, {
         method: "POST",
         headers: createAuthHeaders(token),
       });
@@ -544,3 +544,4 @@ export default function PaymentPage() {
     </div>
   );
 }
+

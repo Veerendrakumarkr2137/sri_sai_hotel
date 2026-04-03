@@ -39,11 +39,13 @@ After creating the service, go to **Settings** → **Environment** and add:
 
 ```
 MONGODB_URI=mongodb+srv://veerendra2137_db_user:Veerendra%40DB1@hotel.vbn2mj8.mongodb.net/?appName=hotel
+# MONGO_URI can be used as an alias if needed
 PORT=3000
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 NODE_ENV=production
 JWT_SECRET=your-secret-key-here
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
 EMAIL_USER=tagmail469@gmail.com
 EMAIL_PASS=tcpasdyqkmjpmneb
 HOTEL_UPI_ID=8792629439@okaxis
@@ -61,18 +63,14 @@ https://sri-sai-hotel-backend.onrender.com
 ```
 
 ### 5. Update Frontend API Configuration
-Update `src/lib/api.ts` with your actual Render URL:
-
-```typescript
-// In production, use your actual Render backend URL
-return "https://sri-sai-hotel-backend.onrender.com";
-```
+Set the frontend API base URL using a Vercel environment variable (no hardcoding in code):
 
 ### 6. Add Vercel Frontend Environment Variable
 In your Vercel project settings, add:
 
 ```bash
 VITE_API_BASE_URL=https://sri-sai-hotel-backend.onrender.com
+VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id
 ```
 
 ### 7. Deploy Frontend Changes

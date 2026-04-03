@@ -3,7 +3,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 
 export default function Register() {
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
@@ -12,6 +13,7 @@ export default function Register() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const redirectTo = searchParams.get("redirect") || "/";
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,21 +28,60 @@ export default function Register() {
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
       };
-      const { data } = await axios.post(`${API_BASE_URL}/api/auth/register`, payload);
-      if (data.success) {
-        // Log them right in
-        const loginRes = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-          email: payload.email,
-          password: payload.password
-        });
-        if (loginRes.data.success) {
-          loginUser(loginRes.data.token, loginRes.data.user);
-          toast.success("Account created successfully");
-          navigate(redirectTo);
-        }
+      const { data } = await axios.post(`${API_URL}/api/auth/register`, payload);
+      if (!data?.success) {
+        throw new Error(data?.error || "Registration failed");
       }
+
+      // Log them right in
+      const loginRes = await axios.post(`${API_URL}/api/auth/login`, {
+        email: payload.email,
+        password: payload.password,
+      });
+
+      if (!loginRes.data?.success) {
+        throw new Error(loginRes.data?.error || "Account created, but login failed.");
+      }
+
+      loginUser(loginRes.data.token, loginRes.data.user);
+      toast.success("Account created successfully");
+      navigate(redirectTo);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Registration failed");
+      const serverMessage = err?.response?.data?.error || err?.response?.data?.message;
+      const fallbackMessage = err?.message?.includes("Network") || !err?.response
+        ? "Unable to reach the server. Please check the API URL or try again."
+        : err?.message || "Registration failed";
+      toast.error(serverMessage || fallbackMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      toast.error("Google sign up failed. Please try again.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API_URL}/api/auth/google`, {
+        idToken: credentialResponse.credential,
+      });
+
+      if (!data?.success) {
+        throw new Error(data?.error || "Google sign up failed");
+      }
+
+      loginUser(data.token, data.user);
+      toast.success("Welcome! Your Google account is connected.");
+      navigate(redirectTo);
+    } catch (err: any) {
+      const serverMessage = err?.response?.data?.error || err?.response?.data?.message;
+      const fallbackMessage = err?.message?.includes("Network") || !err?.response
+        ? "Unable to reach the server. Please check the API URL or try again."
+        : err?.message || "Google sign up failed";
+      toast.error(serverMessage || fallbackMessage);
     } finally {
       setLoading(false);
     }
@@ -111,7 +152,40 @@ export default function Register() {
             </button>
           </div>
         </form>
+
+        <div className="mt-6">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Or continue with
+            </span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+          <div className="mt-4 flex justify-center">
+            {googleClientId ? (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => toast.error("Google sign up failed. Please try again.")}
+                useOneTap={false}
+              />
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-400"
+              >
+                Continue with Google
+              </button>
+            )}
+          </div>
+          {!googleClientId && import.meta.env.DEV && (
+            <p className="mt-2 text-center text-xs text-slate-400">
+              Set VITE_GOOGLE_CLIENT_ID to enable Google sign up.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+

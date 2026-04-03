@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles, Users } from "lucide-react";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 import { motion } from "motion/react";
 import { hoverLift, revealSoft, revealUp, sectionStagger } from "../lib/animations";
 
@@ -23,7 +23,7 @@ export default function Rooms() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const { data } = await axios.get(`${API_BASE_URL}/api/rooms`);
+        const { data } = await axios.get(`${API_URL}/api/rooms`);
         if (data.success) {
           setRooms(data.rooms);
         }
@@ -183,3 +183,4 @@ export default function Rooms() {
     </div>
   );
 }
+

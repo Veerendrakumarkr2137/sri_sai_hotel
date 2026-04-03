@@ -3,7 +3,7 @@ import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { PlusCircle, Edit, Trash2, X } from "lucide-react";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 import { motion, AnimatePresence } from "motion/react";
 import { revealSoft, revealUp, sectionStagger } from "../lib/animations";
 
@@ -65,7 +65,7 @@ export default function AdminRooms() {
       };
 
       if (editingRoom) {
-        const { data } = await axios.put(`${API_BASE_URL}/api/rooms/${editingRoom._id}`, payload, {
+        const { data } = await axios.put(`${API_URL}/api/rooms/${editingRoom._id}`, payload, {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
 
@@ -76,7 +76,7 @@ export default function AdminRooms() {
           fetchRooms();
         }
       } else {
-        const { data } = await axios.post(`${API_BASE_URL}/api/rooms`, payload, {
+        const { data } = await axios.post(`${API_URL}/api/rooms`, payload, {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
 
@@ -96,7 +96,7 @@ export default function AdminRooms() {
 
   const fetchRooms = async () => {
     try {
-      const { data } = await axios.get(`${API_BASE_URL}/api/rooms`);
+      const { data } = await axios.get(`${API_URL}/api/rooms`);
       if (data.success) {
         setRooms(data.rooms);
       }
@@ -108,7 +108,7 @@ export default function AdminRooms() {
   const deleteRoom = async (id: string) => {
     if (!window.confirm("Are you sure?")) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/rooms/${id}`, {
+      await axios.delete(`${API_URL}/api/rooms/${id}`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       toast.success("Room deleted");
@@ -351,3 +351,4 @@ export default function AdminRooms() {
     </motion.div>
   );
 }
+

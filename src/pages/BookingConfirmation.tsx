@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { CalendarDays, CheckCircle2, Clock3, CreditCard, Home, XCircle } from "lucide-react";
-import { API_BASE_URL } from "../lib/api";
+import { API_URL } from "../lib/api";
 import { createAuthHeaders, getUserToken } from "../lib/auth";
 import { getBookingStatusClasses, getBookingStatusLabel } from "../lib/bookingUi";
 import { buildPaymentConfirmationEmailLink, buildWhatsAppLink } from "../lib/paymentContact";
@@ -80,7 +80,7 @@ export default function BookingConfirmationPage() {
   useEffect(() => {
     const fetchPaymentConfig = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/payment/config`);
+        const response = await fetch(`${API_URL}/api/payment/config`);
         const data = await response.json();
 
         if (response.ok && data.success) {
@@ -105,7 +105,7 @@ export default function BookingConfirmationPage() {
     setIsCheckingStatus(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/payment/status/${transactionId}`, {
+      const response = await fetch(`${API_URL}/api/payment/status/${transactionId}`, {
         headers: createAuthHeaders(token),
       });
 
@@ -153,7 +153,7 @@ export default function BookingConfirmationPage() {
 
     const fetchBooking = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/bookings/${id}`, {
+        const response = await fetch(`${API_URL}/api/bookings/${id}`, {
           headers: createAuthHeaders(token),
         });
 
@@ -199,7 +199,7 @@ export default function BookingConfirmationPage() {
     setIsRetrying(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/payment/phonepe`, {
+      const response = await fetch(`${API_URL}/api/payment/phonepe`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -233,7 +233,7 @@ export default function BookingConfirmationPage() {
     setIsSubmittingManualPayment(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/bookings/${booking._id}/confirm-payment`, {
+      const response = await fetch(`${API_URL}/api/bookings/${booking._id}/confirm-payment`, {
         method: "POST",
         headers: createAuthHeaders(token),
       });
@@ -579,3 +579,4 @@ export default function BookingConfirmationPage() {
     </div>
   );
 }
+
