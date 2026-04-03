@@ -32,7 +32,7 @@ export default function Login() {
         throw new Error(data?.error || "Login failed");
       }
       loginUser(data.token, data.user);
-      toast.success("Login successful");
+      toast.success("Google sign-in successful. Welcome back.");
       navigate(redirectTo);
     } catch (err: any) {
       const serverMessage = err?.response?.data?.error || err?.response?.data?.message;

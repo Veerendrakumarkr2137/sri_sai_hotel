@@ -74,7 +74,7 @@ export default function Register() {
       }
 
       loginUser(data.token, data.user);
-      toast.success("Welcome! Your Google account is connected.");
+      toast.success("Account created. Google sign-in connected successfully.");
       navigate(redirectTo);
     } catch (err: any) {
       const serverMessage = err?.response?.data?.error || err?.response?.data?.message;
