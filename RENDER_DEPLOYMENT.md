@@ -23,7 +23,7 @@ server/
 When creating the web service, fill in:
 
 **Basic Settings:**
-- Name: `sri-sai-hotel-backend`
+- Name: `ashok-inn-hotel-backend`
 - Environment: `Node`
 - Region: `Singapore` (or closest to you)
 - Branch: `main`
@@ -49,17 +49,17 @@ GOOGLE_CLIENT_ID=your-google-oauth-client-id
 EMAIL_USER=tagmail469@gmail.com
 EMAIL_PASS=tcpasdyqkmjpmneb
 HOTEL_UPI_ID=8792629439@okaxis
-HOTEL_UPI_NAME=Hotel Sai International
-HOTEL_CONTACT_EMAIL=info@hotelsaiinternational.com
+HOTEL_UPI_NAME=Ashok Inn
+HOTEL_CONTACT_EMAIL=info@ashokinn.com
 HOTEL_SUPPORT_PHONE=+91 84949 26382
 HOTEL_WHATSAPP_NUMBER=918494926382
-FRONTEND_URL=https://sri-sai-hotel.vercel.app
+FRONTEND_URL=https://ashokinn.com
 ```
 
 ### 4. Get Your Render Backend URL
 After deployment, Render will give you a URL like:
 ```
-https://sri-sai-hotel-backend.onrender.com
+https://ashok-inn-hotel-backend.onrender.com
 ```
 
 ### 5. Update Frontend API Configuration
@@ -69,7 +69,7 @@ Set the frontend API base URL using a Vercel environment variable (no hardcoding
 In your Vercel project settings, add:
 
 ```bash
-VITE_API_BASE_URL=https://sri-sai-hotel-backend.onrender.com
+VITE_API_BASE_URL=https://ashok-inn-hotel-backend.onrender.com
 VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id
 ```
 
@@ -86,7 +86,7 @@ Vercel will auto-deploy the frontend.
 ## Testing:
 1. Wait for Render deployment to complete (first deploy takes 2-3 minutes)
 2. Make sure the new environment variables are saved on Render and Vercel
-3. Visit your Vercel frontend: https://sri-sai-hotel.vercel.app/login
+3. Visit your Vercel frontend: https://ashokinn.com/login
 4. Try to login and open the booking page
 5. Check Render logs if any issues
 

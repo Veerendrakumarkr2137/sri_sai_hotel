@@ -106,7 +106,7 @@ export default function Home() {
               variants={revealSoft}
               className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-200 md:text-xl"
             >
-              Hotel Sai International offers an elevated stay in the heart of the city with refined spaces, attentive service, and amenities that make every visit feel effortless.
+              Ashok Inn offers a welcoming stay in the heart of the city with comfortable spaces, attentive service, and amenities that make every visit feel effortless.
             </motion.p>
 
             <motion.div variants={revealSoft} className="mt-10 flex flex-col gap-4 sm:flex-row">
@@ -259,7 +259,7 @@ export default function Home() {
             Ready for an Unforgettable Stay?
           </motion.h2>
           <motion.p variants={revealSoft} className="mt-6 text-lg text-slate-300">
-            Join guests who choose Hotel Sai International for elevated comfort, warm hospitality, and a stay that feels easy from the very first moment.
+            Join guests who choose Ashok Inn for warm hospitality and a stay that feels easy from the very first moment.
           </motion.p>
 
           <motion.div variants={revealSoft} className="mt-10">

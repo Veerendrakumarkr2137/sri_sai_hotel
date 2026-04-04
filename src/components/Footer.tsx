@@ -34,7 +34,7 @@ export default function Footer() {
           <motion.div variants={revealUp} className="space-y-6">
             <Link to="/" className="flex items-center gap-2">
               <span className="text-3xl font-black tracking-tighter text-white">
-                HOTEL <span className="text-blue-400">SAI</span>
+                ASHOK <span className="text-blue-400">INN</span>
               </span>
             </Link>
             <p className="text-sm leading-relaxed text-slate-400">
@@ -77,18 +77,18 @@ export default function Footer() {
               <li className="flex items-start gap-4">
                 <MapPin className="mt-1 h-5 w-5 flex-shrink-0 text-blue-400" />
                 <span className="text-sm text-slate-400">
-                  123 Luxury Avenue, Business District
+                  No. 113/4, Beside New KSRTC Bus Stand
                   <br />
-                  Cityville, ST 12345
+                  P B Road, Link Road, Nittuvalli, Davanagere 577002
                 </span>
               </li>
               <li className="flex items-center gap-4">
                 <Phone className="h-5 w-5 flex-shrink-0 text-blue-400" />
-                <span className="text-sm text-slate-400">+91 98765 43210</span>
+                <span className="text-sm text-slate-400">+91 91642 30250</span>
               </li>
               <li className="flex items-center gap-4">
                 <Mail className="h-5 w-5 flex-shrink-0 text-blue-400" />
-                <span className="text-sm text-slate-400">info@hotelsai.com</span>
+                <span className="text-sm text-slate-400">info@ashokinn.com</span>
               </li>
             </ul>
           </motion.div>
@@ -122,7 +122,7 @@ export default function Footer() {
           className="flex flex-col items-center justify-between gap-4 border-t border-slate-900/80 pt-8 text-center md:flex-row md:text-left"
         >
           <p className="text-sm text-slate-500">
-            &copy; {new Date().getFullYear()} Hotel Sai International. All rights reserved.
+            &copy; {new Date().getFullYear()} Ashok Inn. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm text-slate-500">
             <a href="#" className="transition-colors hover:text-white">

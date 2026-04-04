@@ -40,7 +40,7 @@ export default function Gallery() {
           transition={{ delay: 0.2 }}
           className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed"
         >
-          Explore the elegance and sophistication that defines Hotel Sai International.
+          Explore the spaces and atmosphere that define Ashok Inn.
         </motion.p>
       </div>
 

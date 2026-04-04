@@ -47,7 +47,7 @@ function sendPasswordResetEmail(email: string, resetUrl: string) {
   emailTransporter.sendMail({
     from: emailUser,
     to: email,
-    subject: "Reset your password - Hotel Sai International",
+    subject: "Reset your password - Ashok Inn",
     html: `
       <p>Hello,</p>
       <p>We received a request to reset your password. Click the link below to set a new password:</p>

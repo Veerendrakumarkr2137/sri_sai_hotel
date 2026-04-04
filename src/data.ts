@@ -44,13 +44,13 @@ export const ROOMS = [
 ];
 
 export const HOTEL_INFO = {
-  name: "Hotel Sai International",
-  address: "Davangere-Harihar Road, Near Karur Industrial Area",
+  name: "Ashok Inn",
+  address: "No. 113/4, Beside New KSRTC Bus Stand, P B Road, Link Road, Nittuvalli",
   city: "Davanagere",
   state: "Karnataka",
-  zip: "577006",
+  zip: "577002",
   country: "India",
-  phone: "+91 84949 26382",
-  email: "info@hotelsaiinternational.com",
-  description: "A premium luxury hotel offering world-class hospitality, elegant rooms, and exceptional dining experiences in the heart of Davanagere."
+  phone: "+91 91642 30250",
+  email: "info@ashokinn.com",
+  description: "A welcoming 3-star stay beside the New KSRTC Bus Stand, offering comfortable rooms and easy access to Davanagere's transit hubs and local highlights."
 };

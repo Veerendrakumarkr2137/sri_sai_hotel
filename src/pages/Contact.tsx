@@ -39,9 +39,16 @@ export default function Contact() {
           className="space-y-6"
         >
           {[
-            { icon: MapPin, title: "Our Location", detail: ["123 Luxury Avenue, Business District", "Cityville, ST 12345"] },
-            { icon: Phone, title: "Phone Number", detail: ["+91 98765 43210", "+91 87654 32109"] },
-            { icon: Mail, title: "Email Address", detail: ["info@hotelsai.com", "bookings@hotelsai.com"] }
+            {
+              icon: MapPin,
+              title: "Our Location",
+              detail: [
+                "No. 113/4, Beside New KSRTC Bus Stand",
+                "P B Road, Link Road, Nittuvalli, Davanagere, Karnataka 577002"
+              ]
+            },
+            { icon: Phone, title: "Phone Number", detail: ["+91 91642 30250"] },
+            { icon: Mail, title: "Email Address", detail: ["info@ashokinn.com"] }
           ].map((item, idx) => (
             <motion.div 
               key={idx}

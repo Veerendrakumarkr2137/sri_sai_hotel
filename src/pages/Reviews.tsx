@@ -6,7 +6,7 @@ const REVIEWS = [
     name: "Rahul Sharma",
     date: "October 2023",
     rating: 5,
-    text: "Exceptional stay! The rooms are incredibly spacious and well-maintained. The staff went above and beyond to ensure our comfort. The food at the restaurant was delicious. Highly recommend Hotel Sai International for anyone visiting Davanagere."
+    text: "Exceptional stay! The rooms are incredibly spacious and well-maintained. The staff went above and beyond to ensure our comfort. The food at the restaurant was delicious. Highly recommend Ashok Inn for anyone visiting Davanagere."
   },
   {
     name: "Priya Patel",
@@ -47,7 +47,7 @@ export default function Reviews() {
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-[#0B1B3D] mb-4">Guest Reviews</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Read what our guests have to say about their experience at Hotel Sai International. We take pride in delivering exceptional service.
+            Read what our guests have to say about their experience at Ashok Inn. We take pride in delivering exceptional service.
           </p>
         </div>
 

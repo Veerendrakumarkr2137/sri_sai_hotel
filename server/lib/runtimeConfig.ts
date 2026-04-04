@@ -3,10 +3,10 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const DEFAULT_HOTEL_UPI_ID = "8792629439@okaxis";
-const DEFAULT_HOTEL_UPI_NAME = "Hotel Sai International";
-const DEFAULT_HOTEL_CONTACT_EMAIL = "info@hotelsaiinternational.com";
-const DEFAULT_HOTEL_SUPPORT_PHONE = "+91 84949 26382";
-const DEFAULT_HOTEL_WHATSAPP_NUMBER = "918494926382";
+const DEFAULT_HOTEL_UPI_NAME = "Ashok Inn";
+const DEFAULT_HOTEL_CONTACT_EMAIL = "info@ashokinn.com";
+const DEFAULT_HOTEL_SUPPORT_PHONE = "+91 91642 30250";
+const DEFAULT_HOTEL_WHATSAPP_NUMBER = "919164230250";
 
 function getTrimmedEnv(key: string) {
   return process.env[key]?.trim() || "";
@@ -123,7 +123,7 @@ export function getAllowedCorsOrigins() {
 
   return Array.from(
     new Set([
-      "https://sri-sai-hotel.vercel.app",
+      "https://ashokinn.com",
       "http://localhost:3000",
       "http://localhost:5173",
       ...configuredOrigins,

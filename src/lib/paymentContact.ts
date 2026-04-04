@@ -36,7 +36,7 @@ function getAmountLabel(amount: unknown) {
 
 export function buildManualUpiConfirmationMessage(booking: any) {
   return [
-    "Hello Hotel Sai International,",
+    "Hello Ashok Inn,",
     "",
     "I have completed my UPI payment for this booking.",
     "",

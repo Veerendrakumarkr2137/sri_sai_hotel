@@ -1,4 +1,4 @@
-# Hotel Sai International - MERN Booking App
+# Ashok Inn - Booking App site
 
 A production-ready MERN hotel booking app with customer + admin flows, JWT auth, Google login, bookings, and payment integrations.
 
@@ -69,4 +69,3 @@ Use `RENDER_DEPLOYMENT.md` for step-by-step Render + Vercel deployment.
 
 ## API Health
 `GET /api/health` returns server status and MongoDB connection state.
-

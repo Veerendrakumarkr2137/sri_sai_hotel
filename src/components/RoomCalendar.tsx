@@ -54,9 +54,7 @@ export default function Navbar() {
           {/* LOGO */}
 
           <Link to="/" className="text-2xl font-serif font-bold text-[#0B1B3D]">
-
-            Hotel Sai <span className="text-[#D4AF37]">International</span>
-
+            Ashok Inn <span className="text-[#D4AF37]">Hotel</span>
           </Link>
 
 

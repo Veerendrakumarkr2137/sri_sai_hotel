@@ -120,7 +120,7 @@ function buildBookingEmailHTML({
           <table width="600" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.08);">
             <tr>
               <td style="background:#0b1b3d;padding:24px 32px;color:#ffffff;text-align:center;">
-                <h1 style="margin:0;font-size:24px;letter-spacing:0.5px;">Hotel Sai International</h1>
+                <h1 style="margin:0;font-size:24px;letter-spacing:0.5px;">Ashok Inn</h1>
                 <p style="margin:8px 0 0;font-size:14px;opacity:0.9;">Booking Confirmation</p>
               </td>
             </tr>
@@ -177,7 +177,7 @@ function buildBookingEmailHTML({
             </tr>
             <tr>
               <td style="background:#0b1b3d;padding:18px 32px;text-align:center;color:#cbd5e1;font-size:12px;">
-                (c) ${new Date().getFullYear()} Hotel Sai International. All rights reserved.
+                (c) ${new Date().getFullYear()} Ashok Inn. All rights reserved.
               </td>
             </tr>
           </table>
@@ -281,7 +281,7 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
       room.availableRooms,
     );
 
-    const bookingRef = `HSI-${Date.now()}`;
+    const bookingRef = `AIH-${Date.now()}`;
     const booking = await Booking.create({
       bookingRef,
       userId: req.auth?.userId,
@@ -313,7 +313,7 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
       guests: validatedBooking.guests,
       totalPrice: validatedBooking.totalPrice,
       headline: "Your booking is confirmed!",
-      message: "Thanks for booking with Hotel Sai International. Your reservation is confirmed and you can pay at the hotel upon arrival. If you want a faster check-in experience, you can also pay online before you arrive.",
+      message: "Thanks for booking with Ashok Inn. Your reservation is confirmed and you can pay at the hotel upon arrival. If you want a faster check-in experience, you can also pay online before you arrive.",
       actionLabel: "Pay now to save time",
       actionUrl: payNowUrl,
       secondaryActionLabel: "View my bookings",
@@ -323,7 +323,7 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
 
     sendEmail({
       to: validatedBooking.email,
-      subject: "Booking Confirmed - Hotel Sai International",
+      subject: "Booking Confirmed - Ashok Inn",
       html,
       text: `Hello ${validatedBooking.name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${validatedBooking.totalPrice}. You can pay at the hotel upon arrival or pay now to save time here: ${payNowUrl}`,
     });
@@ -352,7 +352,7 @@ export const createManualBooking = async (req: any, res: Response): Promise<any>
       room.availableRooms,
     );
 
-    const bookingRef = `HSI-${Date.now()}`;
+    const bookingRef = `AIH-${Date.now()}`;
     const booking = await Booking.create({
       bookingRef,
       userId: req.auth?.userId,
@@ -394,7 +394,7 @@ export const createManualBooking = async (req: any, res: Response): Promise<any>
 
     sendEmail({
       to: validatedBooking.email,
-      subject: "Complete your payment - Hotel Sai International",
+      subject: "Complete your payment - Ashok Inn",
       html,
       text: `Hello ${validatedBooking.name}, please complete payment of Rs. ${validatedBooking.totalPrice} to UPI ID ${getUpiId()}. Booking Ref: ${bookingRef}. After payment, use the payment page to confirm with the hotel on WhatsApp or email so staff can verify it.`,
     });
@@ -514,7 +514,7 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
       room.availableRooms,
     );
 
-    const bookingRef = `HSI-${Date.now()}`;
+    const bookingRef = `AIH-${Date.now()}`;
     const booking = await Booking.create({
       bookingRef,
       userId: req.auth?.userId,
@@ -538,7 +538,7 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
     transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: validatedBooking.email,
-      subject: "Booking Confirmation - Hotel Sai International",
+      subject: "Booking Confirmation - Ashok Inn",
       text: `Hello ${validatedBooking.name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Paid: Rs. ${validatedBooking.totalPrice}.`,
     }, (err, info) => {
       if (err) {
@@ -643,7 +643,7 @@ export const verifyManualUpiPayment = async (req: any, res: Response): Promise<a
 
     sendEmail({
       to: booking.email,
-      subject: "Manual UPI payment verified - Hotel Sai International",
+      subject: "Manual UPI payment verified - Ashok Inn",
       html,
       text: `Hello ${booking.name}, your manual UPI payment for booking ${booking.bookingRef} has been verified. Your booking is now confirmed.`,
     });
@@ -764,12 +764,12 @@ export const cancelBooking = async (req: any, res: Response): Promise<any> => {
       totalPrice: booking.totalPrice,
       headline: "Booking cancelled",
       message: "Your booking has been successfully cancelled. If you have any questions, please contact us.",
-      extraInfo: "We hope to see you at Hotel Sai International soon!",
+      extraInfo: "We hope to see you at Ashok Inn soon!",
     });
 
     sendEmail({
       to: booking.email,
-      subject: "Booking Cancelled - Hotel Sai International",
+      subject: "Booking Cancelled - Ashok Inn",
       html,
       text: `Your booking ${booking.bookingRef} has been cancelled.`,
     });

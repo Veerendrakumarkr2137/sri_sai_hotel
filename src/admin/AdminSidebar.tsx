@@ -29,7 +29,7 @@ export default function AdminSidebar() {
           Admin<span className="text-blue-500">Panel</span>
         </h2>
         <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Hotel Sai International
+          Ashok Inn
         </p>
       </div>
 

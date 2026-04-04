@@ -78,9 +78,9 @@ export default function Navbar() {
               transition={{ duration: 0.25 }}
               className="text-2xl font-black tracking-tighter text-slate-900"
             >
-              HOTEL{" "}
+              ASHOK{" "}
               <span className="text-blue-600 transition-colors duration-300 group-hover:text-blue-500">
-                SAI
+                INN
               </span>
             </motion.div>
           </Link>

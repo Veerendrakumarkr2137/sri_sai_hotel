@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: sri-sai-hotel-backend
+    name: ashok-inn-hotel-backend
     runtime: node
     plan: free
     buildCommand: npm install

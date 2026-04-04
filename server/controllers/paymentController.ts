@@ -214,7 +214,7 @@ async function prepareBookingForPayment(
     room.availableRooms,
   );
 
-  const bookingRef = `HSI-${Date.now()}`;
+  const bookingRef = `AIH-${Date.now()}`;
   const booking = await Booking.create({
     bookingRef,
     userId,
