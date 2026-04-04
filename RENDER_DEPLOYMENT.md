@@ -16,7 +16,7 @@ server/
 - Go to https://render.com
 - Sign up with GitHub
 - Click "New +" → "Web Service"
-- Select your GitHub repo (sri_sai_hotel)
+- Select your GitHub repo (hotel)
 - Connect repository
 
 ### 2. Configure Render Service
@@ -51,8 +51,8 @@ EMAIL_PASS=tcpasdyqkmjpmneb
 HOTEL_UPI_ID=8792629439@okaxis
 HOTEL_UPI_NAME=Ashok Inn
 HOTEL_CONTACT_EMAIL=info@ashokinn.com
-HOTEL_SUPPORT_PHONE=+91 84949 26382
-HOTEL_WHATSAPP_NUMBER=918494926382
+HOTEL_SUPPORT_PHONE=+91 91642 30250
+HOTEL_WHATSAPP_NUMBER=919164230250
 FRONTEND_URL=https://ashokinn.com
 ```
 
