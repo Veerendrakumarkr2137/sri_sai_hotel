@@ -55,5 +55,19 @@ export interface BookingRecord {
   checked_in_at?: string | null;
   checked_out_at?: string | null;
   cancelled_at?: string | null;
+  last_called_at?: string | null;
+  created_at?: string;
+}
+
+export interface CallLogRecord {
+  id: string; // UUID
+  booking_id: string;
+  call_sid?: string | null;
+  guest_name?: string | null;
+  phone?: string | null;
+  transcript?: string | null;
+  summary?: string | null;
+  duration?: number | null;
+  status?: string | null;
   created_at?: string;
 }

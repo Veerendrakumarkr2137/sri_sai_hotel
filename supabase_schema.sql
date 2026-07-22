@@ -61,6 +61,7 @@ create table if not exists bookings (
   checked_in_at timestamp with time zone default null,
   checked_out_at timestamp with time zone default null,
   cancelled_at timestamp with time zone default null,
+  last_called_at timestamp with time zone default null,
   created_at timestamp with time zone default now()
 );
 
@@ -76,5 +77,19 @@ create table if not exists gallery (
   id uuid primary key default uuid_generate_v4(),
   url text not null,
   caption text,
+  created_at timestamp with time zone default now()
+);
+
+-- 5. Call Logs Table
+create table if not exists call_logs (
+  id uuid primary key default uuid_generate_v4(),
+  booking_id uuid not null references bookings(id) on delete cascade,
+  call_sid text,
+  guest_name text,
+  phone text,
+  transcript text,
+  summary text,
+  duration integer,
+  status text,
   created_at timestamp with time zone default now()
 );
