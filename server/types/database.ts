@@ -4,6 +4,7 @@ export interface UserRecord {
   id: string; // UUID
   name: string;
   email: string;
+  phone?: string | null;
   password?: string;
   role: "user" | "admin";
   password_reset_token_hash?: string | null;
@@ -17,6 +18,7 @@ export interface RoomRecord {
   description: string;
   price: number;
   images: string[];
+  image_url?: string | null;
   room_type: string;
   capacity: number;
   amenities: string[];
@@ -35,10 +37,14 @@ export interface BookingRecord {
   check_in_date: string;
   check_out_date: string;
   guests: number;
+  arrival_time?: string | null;
   total_price: number;
   transaction_id?: string | null;
   payment_status: "pending" | "submitted" | "paid" | "failed";
   booking_status: "pending" | "pending_payment" | "confirmed" | "checked_in" | "cancelled" | "completed";
+  call_status?: string | null;
+  language?: string | null;
+  ai_summary?: string | null;
   payment_method: "card" | "upi" | "wallet" | "manual_upi" | "pay_at_hotel" | "PhonePe";
   payment_id?: string | null;
   order_id?: string | null;

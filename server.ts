@@ -15,6 +15,7 @@ import adminRoutes from "./server/routes/adminRoutes";
 import paymentRoutes from "./server/routes/paymentRoutes";
 import passwordRoutes from "./server/routes/passwordRoutes";
 import galleryRoutes from "./server/routes/galleryRoutes";
+import automationRoutes from "./server/routes/automationRoutes";
 import { ensureDefaultRooms } from "./server/lib/ensureDefaultRooms";
 import { getAllowedCorsOrigins, validateEnv } from "./server/lib/runtimeConfig";
 import { rateLimit } from "./server/middleware/rateLimit";
@@ -130,6 +131,7 @@ app.use("/api/gallery", galleryRoutes);
 app.use("/api/bookings", bookingLimiter, bookingRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payment", paymentLimiter, paymentRoutes);
+app.use("/api/automation", automationRoutes);
 
 (async () => {
   console.log("Initializing Supabase database...");
