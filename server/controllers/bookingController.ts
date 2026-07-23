@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import axios from "axios";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
@@ -299,6 +300,22 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
       throw insertError || new Error("Failed to insert booking record");
     }
 
+    try {
+      if (process.env.N8N_BOOKING_WEBHOOK) {
+        await axios.post(process.env.N8N_BOOKING_WEBHOOK, {
+          bookingId: booking.id,
+          bookingRef: booking.booking_ref,
+          userId: booking.user_id,
+          roomId: booking.room_id,
+          status: booking.booking_status,
+          checkIn: booking.check_in_date,
+        });
+        console.log(`n8n triggered for booking ${booking.booking_ref}`);
+      }
+    } catch (error) {
+      console.error("Failed to trigger n8n:", error);
+    }
+
     // Send email asynchronously without blocking the response
     const bookingUrl = `${getBookingFrontendUrl()}/my-bookings`;
     const payNowUrl = `${getBookingFrontendUrl()}/payment/${booking.id}`;
@@ -378,6 +395,22 @@ export const createManualBooking = async (req: any, res: Response): Promise<any>
 
     if (insertError || !booking) {
       throw insertError || new Error("Failed to insert booking record");
+    }
+
+    try {
+      if (process.env.N8N_BOOKING_WEBHOOK) {
+        await axios.post(process.env.N8N_BOOKING_WEBHOOK, {
+          bookingId: booking.id,
+          bookingRef: booking.booking_ref,
+          userId: booking.user_id,
+          roomId: booking.room_id,
+          status: booking.booking_status,
+          checkIn: booking.check_in_date,
+        });
+        console.log(`n8n triggered for booking ${booking.booking_ref}`);
+      }
+    } catch (error) {
+      console.error("Failed to trigger n8n:", error);
     }
 
     // Send email asynchronously without blocking the response
@@ -575,6 +608,22 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
 
     if (insertError || !booking) {
       throw insertError || new Error("Failed to create booking");
+    }
+
+    try {
+      if (process.env.N8N_BOOKING_WEBHOOK) {
+        await axios.post(process.env.N8N_BOOKING_WEBHOOK, {
+          bookingId: booking.id,
+          bookingRef: booking.booking_ref,
+          userId: booking.user_id,
+          roomId: booking.room_id,
+          status: booking.booking_status,
+          checkIn: booking.check_in_date,
+        });
+        console.log(`n8n triggered for booking ${booking.booking_ref}`);
+      }
+    } catch (error) {
+      console.error("Failed to trigger n8n:", error);
     }
 
     // Send email asynchronously without blocking the response
