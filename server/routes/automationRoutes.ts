@@ -23,10 +23,7 @@ router.get("/today-bookings", async (req, res) => {
       return res.status(500).json(error);
     }
 
-    res.json({
-      success: true,
-      bookings: data,
-    });
+    res.json(data);
   } catch (err) {
     console.error(err);
 
