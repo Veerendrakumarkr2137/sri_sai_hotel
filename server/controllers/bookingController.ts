@@ -749,39 +749,8 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
         return res.json({ success: true, booking: adaptBooking(booking) });
       }
 
-      const allowedTransitions = {
-        pending: new Set(["pending_payment", "confirmed", "cancelled"]),
-        pending_payment: new Set(["confirmed", "cancelled"]),
-        confirmed: new Set(["checked_in", "cancelled"]),
-        checked_in: new Set(["completed"]),
-        cancelled: new Set<string>(),
-        completed: new Set<string>(),
-      } as const;
-
-      const nextStatuses = allowedTransitions[booking.booking_status as keyof typeof allowedTransitions];
-
-      if (!nextStatuses || !nextStatuses.has(status)) {
-        return res.status(400).json({
-          success: false,
-          error: "This booking cannot move to that status.",
-        });
-      }
-
-      const canConfirmWithoutPaidStatus = booking.payment_method === "pay_at_hotel";
-
-      if (status === "confirmed" && booking.payment_status !== "paid" && !canConfirmWithoutPaidStatus) {
-        return res.status(400).json({
-          success: false,
-          error: "This booking cannot be confirmed until the payment is verified.",
-        });
-      }
-
-      if (status === "checked_in" && booking.booking_status !== "confirmed") {
-        return res.status(400).json({
-          success: false,
-          error: "Only confirmed bookings can be checked in.",
-        });
-      }
+      // Removed strict state machine transitions to allow admins full control
+      // Admins can now freely change between any valid status to correct mistakes.
 
       const updates: Record<string, any> = {
         booking_status: status,
