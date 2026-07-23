@@ -307,8 +307,14 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
           bookingRef: booking.booking_ref,
           userId: booking.user_id,
           roomId: booking.room_id,
+          room: room?.title,
+          guestName: booking.name,
+          email: booking.email,
+          phone: booking.phone,
           status: booking.booking_status,
           checkIn: booking.check_in_date,
+          checkOut: booking.check_out_date,
+          totalPrice: booking.total_price,
         });
         console.log(`n8n triggered for booking ${booking.booking_ref}`);
       }
@@ -404,8 +410,14 @@ export const createManualBooking = async (req: any, res: Response): Promise<any>
           bookingRef: booking.booking_ref,
           userId: booking.user_id,
           roomId: booking.room_id,
+          room: room?.title,
+          guestName: booking.name,
+          email: booking.email,
+          phone: booking.phone,
           status: booking.booking_status,
           checkIn: booking.check_in_date,
+          checkOut: booking.check_out_date,
+          totalPrice: booking.total_price,
         });
         console.log(`n8n triggered for booking ${booking.booking_ref}`);
       }
@@ -617,8 +629,14 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
           bookingRef: booking.booking_ref,
           userId: booking.user_id,
           roomId: booking.room_id,
+          room: room?.title,
+          guestName: booking.name,
+          email: booking.email,
+          phone: booking.phone,
           status: booking.booking_status,
           checkIn: booking.check_in_date,
+          checkOut: booking.check_out_date,
+          totalPrice: booking.total_price,
         });
         console.log(`n8n triggered for booking ${booking.booking_ref}`);
       }
