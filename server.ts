@@ -15,7 +15,7 @@ import adminRoutes from "./server/routes/adminRoutes";
 import paymentRoutes from "./server/routes/paymentRoutes";
 import passwordRoutes from "./server/routes/passwordRoutes";
 import galleryRoutes from "./server/routes/galleryRoutes";
-import automationRoutes from "./server/automation/automation.routes";
+import automationRoutes from "./server/routes/automationRoutes";
 import webhookRoutes from "./server/routes/webhookRoutes";
 import { ensureDefaultRooms } from "./server/lib/ensureDefaultRooms";
 import { getAllowedCorsOrigins, validateEnv } from "./server/lib/runtimeConfig";
