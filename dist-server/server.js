@@ -1,9 +1,9 @@
 // server.ts
-import express from "express";
+import express2 from "express";
 import path from "node:path";
 import crypto4 from "node:crypto";
 import { fileURLToPath } from "node:url";
-import dotenv3 from "dotenv";
+import "dotenv/config";
 import cors from "cors";
 
 // server/routes/authRoutes.ts
@@ -749,6 +749,7 @@ var roomRoutes_default = router2;
 import { Router as Router3 } from "express";
 
 // server/controllers/bookingController.ts
+import axios from "axios";
 import Razorpay from "razorpay";
 import crypto2 from "crypto";
 import nodemailer2 from "nodemailer";
@@ -1076,6 +1077,27 @@ var createPayAtHotelBooking = async (req, res) => {
     if (insertError || !booking) {
       throw insertError || new Error("Failed to insert booking record");
     }
+    try {
+      if (process.env.N8N_BOOKING_WEBHOOK) {
+        await axios.post(process.env.N8N_BOOKING_WEBHOOK, {
+          bookingId: booking.id,
+          bookingRef: booking.booking_ref,
+          userId: booking.user_id,
+          roomId: booking.room_id,
+          room: room?.title,
+          guestName: booking.name,
+          email: booking.email,
+          phone: booking.phone,
+          status: booking.booking_status,
+          checkIn: booking.check_in_date,
+          checkOut: booking.check_out_date,
+          totalPrice: booking.total_price
+        });
+        console.log(`n8n triggered for booking ${booking.booking_ref}`);
+      }
+    } catch (error) {
+      console.error("Failed to trigger n8n:", error);
+    }
     const bookingUrl = `${getBookingFrontendUrl()}/my-bookings`;
     const payNowUrl = `${getBookingFrontendUrl()}/payment/${booking.id}`;
     const html = buildBookingEmailHTML({
@@ -1138,6 +1160,27 @@ var createManualBooking = async (req, res) => {
     }).select().single();
     if (insertError || !booking) {
       throw insertError || new Error("Failed to insert booking record");
+    }
+    try {
+      if (process.env.N8N_BOOKING_WEBHOOK) {
+        await axios.post(process.env.N8N_BOOKING_WEBHOOK, {
+          bookingId: booking.id,
+          bookingRef: booking.booking_ref,
+          userId: booking.user_id,
+          roomId: booking.room_id,
+          room: room?.title,
+          guestName: booking.name,
+          email: booking.email,
+          phone: booking.phone,
+          status: booking.booking_status,
+          checkIn: booking.check_in_date,
+          checkOut: booking.check_out_date,
+          totalPrice: booking.total_price
+        });
+        console.log(`n8n triggered for booking ${booking.booking_ref}`);
+      }
+    } catch (error) {
+      console.error("Failed to trigger n8n:", error);
     }
     const paymentUrl = `${getBookingFrontendUrl()}/payment/${booking.id}`;
     const supportContactSummary = getSupportContactSummary();
@@ -1282,6 +1325,27 @@ var verifyPaymentAndBook = async (req, res) => {
     if (insertError || !booking) {
       throw insertError || new Error("Failed to create booking");
     }
+    try {
+      if (process.env.N8N_BOOKING_WEBHOOK) {
+        await axios.post(process.env.N8N_BOOKING_WEBHOOK, {
+          bookingId: booking.id,
+          bookingRef: booking.booking_ref,
+          userId: booking.user_id,
+          roomId: booking.room_id,
+          room: room?.title,
+          guestName: booking.name,
+          email: booking.email,
+          phone: booking.phone,
+          status: booking.booking_status,
+          checkIn: booking.check_in_date,
+          checkOut: booking.check_out_date,
+          totalPrice: booking.total_price
+        });
+        console.log(`n8n triggered for booking ${booking.booking_ref}`);
+      }
+    } catch (error) {
+      console.error("Failed to trigger n8n:", error);
+    }
     transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: validatedBooking.email,
@@ -1404,34 +1468,6 @@ var updateBookingStatus = async (req, res) => {
     }
     if (booking.booking_status === status) {
       return res.json({ success: true, booking: adaptBooking(booking) });
-    }
-    const allowedTransitions = {
-      pending: /* @__PURE__ */ new Set(["pending_payment", "confirmed", "cancelled"]),
-      pending_payment: /* @__PURE__ */ new Set(["confirmed", "cancelled"]),
-      confirmed: /* @__PURE__ */ new Set(["checked_in", "cancelled"]),
-      checked_in: /* @__PURE__ */ new Set(["completed"]),
-      cancelled: /* @__PURE__ */ new Set(),
-      completed: /* @__PURE__ */ new Set()
-    };
-    const nextStatuses = allowedTransitions[booking.booking_status];
-    if (!nextStatuses || !nextStatuses.has(status)) {
-      return res.status(400).json({
-        success: false,
-        error: "This booking cannot move to that status."
-      });
-    }
-    const canConfirmWithoutPaidStatus = booking.payment_method === "pay_at_hotel";
-    if (status === "confirmed" && booking.payment_status !== "paid" && !canConfirmWithoutPaidStatus) {
-      return res.status(400).json({
-        success: false,
-        error: "This booking cannot be confirmed until the payment is verified."
-      });
-    }
-    if (status === "checked_in" && booking.booking_status !== "confirmed") {
-      return res.status(400).json({
-        success: false,
-        error: "Only confirmed bookings can be checked in."
-      });
     }
     const updates = {
       booking_status: status
@@ -1651,7 +1687,7 @@ var adminRoutes_default = router4;
 import { Router as Router5 } from "express";
 
 // server/controllers/paymentController.ts
-import axios from "axios";
+import axios2 from "axios";
 import crypto3 from "crypto";
 var PHONEPE_BASE_URL = "https://api-preprod.phonepe.com/apis/pg-sandbox";
 var PHONEPE_PAY_PATH = "/pg/v1/pay";
@@ -1801,7 +1837,7 @@ async function fetchPhonePeStatus(transactionId, config) {
   const statusPath = getPhonePeStatusPath(config.merchantId, transactionId);
   const checksum = buildChecksum(statusPath, config.saltKey, config.saltIndex);
   const url = `${PHONEPE_BASE_URL}${statusPath}`;
-  const response = await axios.get(url, {
+  const response = await axios2.get(url, {
     headers: {
       "Content-Type": "application/json",
       "X-VERIFY": checksum,
@@ -1880,7 +1916,7 @@ async function createPhonePePayment(request, response) {
     };
     const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64");
     const checksum = buildChecksum(encodedPayload + PHONEPE_PAY_PATH, config.saltKey, config.saltIndex);
-    const paymentResponse = await axios.post(
+    const paymentResponse = await axios2.post(
       `${PHONEPE_BASE_URL}${PHONEPE_PAY_PATH}`,
       { request: encodedPayload },
       {
@@ -2045,6 +2081,126 @@ router7.post("/", requireAuth("admin"), addGalleryImage);
 router7.delete("/:id", requireAuth("admin"), deleteGalleryImage);
 var galleryRoutes_default = router7;
 
+// server/routes/automationRoutes.ts
+import express from "express";
+
+// server/controllers/automationController.ts
+var getBookingDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase.from("bookings").select(`
+        *,
+        users(*),
+        rooms(*)
+      `).eq("id", id).single();
+    if (error) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    return res.json(data);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    });
+  }
+};
+
+// server/routes/automationRoutes.ts
+var router8 = express.Router();
+router8.get("/booking/:id", getBookingDetails);
+var automationRoutes_default = router8;
+
+// server/routes/webhookRoutes.ts
+import { Router as Router8 } from "express";
+
+// server/services/twilio.service.ts
+import twilio from "twilio";
+var accountSid = process.env.TWILIO_ACCOUNT_SID || "AC_mock_sid";
+var authToken = process.env.TWILIO_AUTH_TOKEN || "mock_token";
+var twilioNumber = process.env.TWILIO_PHONE_NUMBER || "+1234567890";
+var client = twilio(accountSid, authToken);
+var TwilioService = class {
+  /**
+   * Creates an outbound call to the guest.
+   * If credentials aren't set, it returns a mock session ID.
+   */
+  static async createOutboundCall(toPhone, bookingId) {
+    if (accountSid === "AC_mock_sid") {
+      console.warn("[TwilioService] Using mock credentials. Call will not actually be placed.");
+      return `mock_call_${Date.now()}`;
+    }
+    try {
+      const call = await client.calls.create({
+        url: `${process.env.VITE_API_BASE_URL}/webhooks/twilio/twiml/${bookingId}`,
+        to: toPhone,
+        from: twilioNumber,
+        statusCallback: `${process.env.VITE_API_BASE_URL}/webhooks/twilio/status`,
+        statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
+        statusCallbackMethod: "POST"
+      });
+      return call.sid;
+    } catch (error) {
+      console.error("[TwilioService] createOutboundCall error:", error);
+      throw new Error(`Twilio call failed: ${error.message}`);
+    }
+  }
+  static async statusCallback(statusData) {
+    console.log("[TwilioService] Call status update:", statusData.CallStatus);
+    return statusData;
+  }
+  static async callCompleted(callSid) {
+    console.log(`[TwilioService] Call completed for SID: ${callSid}`);
+  }
+};
+
+// server/routes/webhookRoutes.ts
+var router9 = Router8();
+router9.post("/twilio/status", async (req, res) => {
+  try {
+    const statusData = req.body;
+    await TwilioService.statusCallback(statusData);
+    const callSid = statusData.CallSid;
+    const callStatus = statusData.CallStatus;
+    let mappedStatus = callStatus;
+    if (callStatus === "completed") mappedStatus = "Completed";
+    if (callStatus === "no-answer") mappedStatus = "No Answer";
+    if (callStatus === "failed") mappedStatus = "Failed";
+    if (callSid) {
+      await supabase.from("call_logs").update({ status: mappedStatus }).eq("call_sid", callSid);
+    }
+    if (callStatus === "completed") {
+      await TwilioService.callCompleted(callSid);
+    }
+    return res.status(200).send("OK");
+  } catch (error) {
+    console.error("[Webhook] Twilio status error:", error);
+    return res.status(500).send("Error processing webhook");
+  }
+});
+router9.post("/twilio/twiml/:bookingId", (req, res) => {
+  const twiml = `
+    <Response>
+      <Say>Hello, this is the AI assistant for Ashok Inn. How can I help you with your check-in today?</Say>
+    </Response>
+  `;
+  res.type("text/xml");
+  res.send(twiml);
+});
+router9.post("/elevenlabs/event", async (req, res) => {
+  try {
+    console.log("[Webhook] ElevenLabs event received", req.body);
+    return res.status(200).send("OK");
+  } catch (error) {
+    console.error("[Webhook] ElevenLabs event error:", error);
+    return res.status(500).send("Error");
+  }
+});
+var webhookRoutes_default = router9;
+
 // server/middleware/rateLimit.ts
 function rateLimit(options) {
   const hits = /* @__PURE__ */ new Map();
@@ -2096,7 +2252,6 @@ function monitorRequests(options = {}) {
 
 // server.ts
 console.log("Starting server process...");
-dotenv3.config();
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var PORT = Number(process.env.PORT) || 3e3;
 var IS_PRODUCTION = process.env.NODE_ENV === "production";
@@ -2109,7 +2264,7 @@ if (envValidation.warnings.length > 0) {
     `Environment warnings (check values for): ${Array.from(new Set(envValidation.warnings)).join(", ")}`
   );
 }
-var app = express();
+var app = express2();
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
 app.use((req, res, next) => {
@@ -2143,7 +2298,7 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
-app.use(express.json({ limit: "1mb" }));
+app.use(express2.json({ limit: "1mb" }));
 var globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1e3,
   // 15 minutes
@@ -2190,6 +2345,8 @@ app.use("/api/gallery", galleryRoutes_default);
 app.use("/api/bookings", bookingLimiter, bookingRoutes_default);
 app.use("/api/admin", adminRoutes_default);
 app.use("/api/payment", paymentLimiter, paymentRoutes_default);
+app.use("/api/automation", automationRoutes_default);
+app.use("/webhooks", webhookRoutes_default);
 (async () => {
   console.log("Initializing Supabase database...");
   try {
@@ -2211,7 +2368,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.resolve(__dirname, "dist")));
+    app.use(express2.static(path.resolve(__dirname, "dist")));
     app.get(/^(?!\/api).*/, (_request, response) => {
       response.sendFile(path.resolve(__dirname, "dist", "index.html"));
     });

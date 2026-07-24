@@ -5,7 +5,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
-import dotenv from "dotenv";
+import "dotenv/config";
 import cors from "cors";
 
 import authRoutes from "./server/routes/authRoutes";
@@ -24,7 +24,6 @@ import { monitorRequests } from "./server/middleware/monitoring";
 import { searchBooking } from "./server/controllers/bookingController";
 import { supabase } from "./server/lib/supabaseClient";
 
-dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
