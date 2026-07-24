@@ -79,9 +79,9 @@ function validateEnv(isProduction) {
       warnings.push("ADMIN_USERNAME", "ADMIN_PASSWORD");
     }
   }
-  const emailUser2 = getTrimmedEnv("EMAIL_USER");
-  const emailPass2 = getTrimmedEnv("EMAIL_PASS");
-  if (!emailUser2 || !emailPass2) {
+  const emailUser = getTrimmedEnv("EMAIL_USER");
+  const emailPass = getTrimmedEnv("EMAIL_PASS");
+  if (!emailUser || !emailPass) {
     if (isProduction) {
       missing.push("EMAIL_USER", "EMAIL_PASS");
     } else {
@@ -153,25 +153,26 @@ var JWT_SECRET = getJwtSecret();
 var PASSWORD_RESET_TTL_MINUTES = 30;
 var GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 var googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
-var emailUser = process.env.EMAIL_USER || "";
-var emailPass = process.env.EMAIL_PASS || "";
-var emailConfigured = Boolean(emailUser && emailPass);
-var emailTransporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: emailUser,
-    pass: emailPass
-  }
-});
+function getEmailTransporter() {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER || "",
+      pass: process.env.EMAIL_PASS || ""
+    }
+  });
+}
 function hashResetToken(token) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 function sendPasswordResetEmail(email, resetUrl) {
-  if (!emailConfigured) {
+  const emailUser = process.env.EMAIL_USER || "";
+  const emailPass = process.env.EMAIL_PASS || "";
+  if (!emailUser || !emailPass) {
     console.warn("Email credentials are not configured. Skipping reset email.");
     return;
   }
-  emailTransporter.sendMail({
+  getEmailTransporter().sendMail({
     from: emailUser,
     to: email,
     subject: "Reset your password - Ashok Inn",
@@ -844,13 +845,15 @@ var razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "test_key",
   key_secret: process.env.RAZORPAY_KEY_SECRET || "test_secret"
 });
-var transporter = nodemailer2.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+function getTransporter() {
+  return nodemailer2.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+}
 function getBookingFrontendUrl() {
   return getFrontendUrl();
 }
@@ -971,7 +974,7 @@ function buildBookingEmailHTML({
   `;
 }
 function sendEmail({ to, subject, html, text }) {
-  transporter.sendMail({
+  getTransporter().sendMail({
     from: process.env.EMAIL_USER,
     to,
     subject,
@@ -1334,7 +1337,7 @@ var verifyPaymentAndBook = async (req, res) => {
     } catch (error) {
       console.error("Failed to trigger n8n:", error);
     }
-    transporter.sendMail({
+    getTransporter().sendMail({
       from: process.env.EMAIL_USER,
       to: validatedBooking.email,
       subject: "Booking Confirmation - Ashok Inn",

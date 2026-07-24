@@ -18,13 +18,15 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET || "test_secret",
 });
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+function getTransporter() {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+}
 
 
 
@@ -174,7 +176,7 @@ function buildBookingEmailHTML({
 }
 
 function sendEmail({ to, subject, html, text }: { to: string; subject: string; html: string; text?: string; }) {
-  transporter.sendMail({
+  getTransporter().sendMail({
     from: process.env.EMAIL_USER,
     to,
     subject,
@@ -641,7 +643,7 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
     }
 
     // Send email asynchronously without blocking the response
-    transporter.sendMail({
+    getTransporter().sendMail({
       from: process.env.EMAIL_USER,
       to: validatedBooking.email,
       subject: "Booking Confirmation - Ashok Inn",

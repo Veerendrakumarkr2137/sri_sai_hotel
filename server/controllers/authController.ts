@@ -14,17 +14,15 @@ const PASSWORD_RESET_TTL_MINUTES = 30;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
-const emailUser = process.env.EMAIL_USER || "";
-const emailPass = process.env.EMAIL_PASS || "";
-const emailConfigured = Boolean(emailUser && emailPass);
-
-const emailTransporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: emailUser,
-    pass: emailPass,
-  },
-});
+function getEmailTransporter() {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER || "",
+      pass: process.env.EMAIL_PASS || "",
+    },
+  });
+}
 
 
 
@@ -33,12 +31,14 @@ function hashResetToken(token: string) {
 }
 
 function sendPasswordResetEmail(email: string, resetUrl: string) {
-  if (!emailConfigured) {
+  const emailUser = process.env.EMAIL_USER || "";
+  const emailPass = process.env.EMAIL_PASS || "";
+  if (!emailUser || !emailPass) {
     console.warn("Email credentials are not configured. Skipping reset email.");
     return;
   }
 
-  emailTransporter.sendMail({
+  getEmailTransporter().sendMail({
     from: emailUser,
     to: email,
     subject: "Reset your password - Ashok Inn",
