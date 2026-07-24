@@ -175,10 +175,11 @@ function buildBookingEmailHTML({
   `;
 }
 
-function sendEmail({ to, subject, html, text }: { to: string; subject: string; html: string; text?: string; }) {
+function sendEmail({ to, cc, subject, html, text }: { to: string; cc?: string; subject: string; html: string; text?: string; }) {
   getTransporter().sendMail({
     from: process.env.EMAIL_USER,
     to,
+    cc,
     subject,
     html,
     text,
@@ -342,6 +343,7 @@ export const createPayAtHotelBooking = async (req: any, res: Response): Promise<
 
     sendEmail({
       to: validatedBooking.email,
+      cc: process.env.HOTEL_CONTACT_EMAIL || process.env.EMAIL_USER,
       subject: "Booking Confirmed - Ashok Inn",
       html,
       text: `Hello ${validatedBooking.name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Amount: Rs. ${validatedBooking.totalPrice}. You can pay at the hotel upon arrival or pay now to save time here: ${payNowUrl}`,
@@ -445,6 +447,7 @@ export const createManualBooking = async (req: any, res: Response): Promise<any>
 
     sendEmail({
       to: validatedBooking.email,
+      cc: process.env.HOTEL_CONTACT_EMAIL || process.env.EMAIL_USER,
       subject: "Complete your payment - Ashok Inn",
       html,
       text: `Hello ${validatedBooking.name}, please complete payment of Rs. ${validatedBooking.totalPrice} to UPI ID ${getUpiId()}. Booking Ref: ${bookingRef}. After payment, use the payment page to confirm with the hotel on WhatsApp or email so staff can verify it.`,
@@ -643,17 +646,27 @@ export const verifyPaymentAndBook = async (req: any, res: Response): Promise<any
     }
 
     // Send email asynchronously without blocking the response
-    getTransporter().sendMail({
-      from: process.env.EMAIL_USER,
+    const bookingUrl = `${getBookingFrontendUrl()}/my-bookings`;
+    const html = buildBookingEmailHTML({
+      name: validatedBooking.name,
+      bookingRef,
+      roomTitle: room.title,
+      checkInDate: validatedBooking.checkInDate,
+      checkOutDate: validatedBooking.checkOutDate,
+      guests: validatedBooking.guests,
+      totalPrice: validatedBooking.totalPrice,
+      headline: "Your booking is confirmed!",
+      message: "Thanks for booking with Ashok Inn. Your payment has been received and your reservation is confirmed.",
+      actionLabel: "View my bookings",
+      actionUrl: bookingUrl,
+    });
+
+    sendEmail({
       to: validatedBooking.email,
+      cc: process.env.HOTEL_CONTACT_EMAIL || process.env.EMAIL_USER,
       subject: "Booking Confirmation - Ashok Inn",
+      html,
       text: `Hello ${validatedBooking.name}, your booking for room ${room.title} is confirmed. Booking Ref: ${bookingRef}. Total Paid: Rs. ${validatedBooking.totalPrice}.`,
-    }, (err, info) => {
-      if (err) {
-        console.error("Email error:", err);
-      } else {
-        console.log("Email sent:", info?.response);
-      }
     });
 
     return res.status(201).json({ success: true, booking: adaptBooking(booking) });
@@ -776,6 +789,7 @@ export const verifyManualUpiPayment = async (req: any, res: Response): Promise<a
 
     sendEmail({
       to: updated.email,
+      cc: process.env.HOTEL_CONTACT_EMAIL || process.env.EMAIL_USER,
       subject: "Manual UPI payment verified - Ashok Inn",
       html,
       text: `Hello ${updated.name}, your manual UPI payment for booking ${updated.booking_ref} has been verified. Your booking is now confirmed.`,
