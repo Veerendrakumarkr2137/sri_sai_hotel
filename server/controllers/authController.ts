@@ -26,13 +26,7 @@ const emailTransporter = nodemailer.createTransport({
   },
 });
 
-if (emailConfigured) {
-  emailTransporter.verify((error) => {
-    if (error) {
-      console.error("Auth email transporter verification failed:", error);
-    }
-  });
-}
+
 
 function hashResetToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");

@@ -26,11 +26,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-transporter.verify((error) => {
-  if (error) {
-    console.error("Email transporter verification failed:", error);
-  }
-});
+
 
 function getBookingFrontendUrl() {
   return getFrontendUrl();
